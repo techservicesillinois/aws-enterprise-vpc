@@ -104,12 +104,14 @@ resource "aws_internet_gateway" "igw" {
 # require outbound Internet access.
 
 module "nat-a" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.1"
     source = "../modules/nat-gateway"
     # this public-facing subnet is defined further down
     public_subnet_id = "${module.public1-a-net.id}"
 }
 
 module "nat-b" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.1"
     source = "../modules/nat-gateway"
     # this public-facing subnet is defined further down
     public_subnet_id = "${module.public1-b-net.id}"
@@ -135,6 +137,7 @@ resource "aws_vpn_gateway" "vgw" {
 }
 
 module "vpn1" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.1"
     source = "../modules/vpn-connection"
     name = "${var.vpc_short_name}-vpn1"
     vpn_gateway_id = "${aws_vpn_gateway.vgw.id}"
@@ -152,6 +155,7 @@ output "vpn1.customer_gateway_configuration" {
 }
 
 module "vpn2" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.1"
     source = "../modules/vpn-connection"
     name = "${var.vpc_short_name}-vpn2"
     vpn_gateway_id = "${aws_vpn_gateway.vgw.id}"
@@ -193,6 +197,7 @@ output "vpn2.customer_gateway_configuration" {
 # want your subnets to use those things.
 
 module "public1-a-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.1"
     source = "../modules/public-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-public1-a-net"
@@ -205,6 +210,7 @@ module "public1-a-net" {
 }
 
 module "public1-b-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.1"
     source = "../modules/public-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-public1-b-net"
@@ -217,6 +223,7 @@ module "public1-b-net" {
 }
 
 module "campus1-a-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.1"
     source = "../modules/campus-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-campus1-a-net"
@@ -230,6 +237,7 @@ module "campus1-a-net" {
 }
 
 module "campus1-b-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.1"
     source = "../modules/campus-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-campus1-b-net"
@@ -243,6 +251,7 @@ module "campus1-b-net" {
 }
 
 module "private1-a-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.1"
     source = "../modules/private-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-private1-a-net"
@@ -255,6 +264,7 @@ module "private1-a-net" {
 }
 
 module "private1-b-net" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.1"
     source = "../modules/private-facing-subnet"
     vpc_id = "${aws_vpc.vpc.id}"
     name = "${var.vpc_short_name}-private1-b-net"

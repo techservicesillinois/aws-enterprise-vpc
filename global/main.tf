@@ -45,6 +45,7 @@ provider "aws" {
 # Customer Gateways
 
 module "cgw" {
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.1"
     source = "../modules/customer-gateways"
 }
 
