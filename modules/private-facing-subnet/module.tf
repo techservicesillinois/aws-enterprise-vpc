@@ -49,6 +49,11 @@ output "id" {
     value = "${module.subnet.id}"
 }
 
+# for convenience, since callers cannot reference module inputs directly
+output "cidr_block" {
+    value = "${var.cidr_block}"
+}
+
 
 
 module "subnet" {
