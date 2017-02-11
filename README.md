@@ -43,6 +43,7 @@ You will need:
 
 You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Example diagram (**TODO:KB LINK**).
 
+
 ### Workstation Setup
 
 You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  The all-important Terraform state files are automatically synced to S3, so you can run it from a different workstation every day as long as you follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn): "The master branch of the live repository is a 1:1 representation of what’s actually deployed in production."
@@ -71,6 +72,7 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
    * Verify that you can successfully run `aws ec2 describe-vpcs` from the command line and get a response.
 
+
 ### Deployment Steps
 
 1. Set `AWS_PROFILE` if needed (see above).
@@ -91,7 +93,7 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
      (then check your email and follow the confirmation instructions)
 
-3. Deploy the `vpc` environment to create those resources which are specific to a single VPC:
+3. Deploy the `vpc` environment:
 
        cd vpc
        terragrunt get
@@ -127,6 +129,7 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
           terragrunt apply
           cd ..
 
+
 ### Example Service
 
 If you like, you can now deploy the `example-service` environment to launch an EC2 instance in one of your new public-facing subnets (note that you will need to edit `example-service/terraform.tfvars`).
@@ -145,22 +148,40 @@ Notice that the `example-service` code does _not_ directly depend on any of the 
 ## Where To Go From Here
 ------------------------
 
-After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (illustrated by `example-service/`).  In general, that code does _not_ need to reside in the same repository with the IaC for your shared networking resources (which are used by many services); on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
+After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (illustrated by `example-service/`).  In general, that code does _not_ need to reside in the same repository with the IaC for your shared networking resources which are used by many services; on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
 
   * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if for some reason the entire VPC must be rebuilt.
 
-  * Multiple IaC repositories for the same AWS account can all use the same bucket in `.terragrunt`, **provided you replace the "Shared Networking" portion of the `key` and `state_file_id` values with a different string that is guaranteed to be unique for each such repository.**
+  * Multiple IaC repositories which use the same AWS account can all specify the same bucket in `.terragrunt`, **provided you replace the "Shared Networking" portion of the `key` and `state_file_id` values with a different string that is guaranteed to be unique for each such repository.**
 
-    (Note that our use of `path_relative_to_include()` ensures uniqueness for multiple environments _within_ the "Shared Networking" repository.)
+    Note that our use of `path_relative_to_include()` ensures uniqueness for multiple environments _within_ the "Shared Networking" repository.
+
 
 ### Multiple VPCs
 
 If you need to create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `vpc2/` and modify the necessary values in the new files.
 
+    .
+    ├── .terragrunt
+    ├── global/
+    ├── modules/
+    ├── vpc/
+    └── vpc2/
+
 _Note_: you can name an environment directory however you like, but be very careful about modifying its name _after_ you have started using it, because the directory path is automatically interpolated by Terragrunt into the `key` used to store that environment's Terraform state file in S3.
+
 
 ### Multiple AWS accounts
 
-We strongly recommend that each AWS account you administer should have its own separate live infrastructure-as-code source control repository for Enterprise VPC shared networking resources.
+If you wish to keep live infrastructure-as-code for several different AWS accounts in the same source control repository, put the code for each AWS account in a separate top-level directory with its own `.terragrunt` file (specifying an appropriate bucket for that account) and its own set of environments, e.g.
 
-For services, using the same AWS account for `stage` and `prod` service environments makes it easy to keep those environments in the same IaC repository; however, you may find it valuable to use a _different_ AWS account for `dev` service environments.  This raises the question of whether the dev environment for each service should live in the same IaC repository alongside stage and prod (this is tricky, but possible if you're careful) or whether it should have its own separate repository (which may be inconvenient in other ways).  That question is outside the scope of this document, but regardless of what you decide to do for your individual services, we suggest that your IaC for Enterprise VPC shared networking resources should be maintained in a separate repository for each AWS account so that each repository can have a single top-level `.terragrunt` file and a single `global` environment.
+    .
+    ├── account1/
+    │   ├── .terragrunt
+    │   ├── global/
+    │   └── vpc/
+    ├── account2/
+    │   ├── .terragrunt
+    │   ├── global/
+    │   └── vpc/
+    └── modules/
