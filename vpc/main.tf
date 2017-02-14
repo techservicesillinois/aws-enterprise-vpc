@@ -28,17 +28,12 @@ variable "pcx_ids" {
 
 ## Outputs
 
-# Use this output to request a Core Services VPC peering from Technology Services
-output "Information for VPC Peering Requests" {
-    value = {
-        name = "${var.vpc_short_name}"
-        peer_owner_id = "${var.account_id}"
-        peer_vpc_id = "${aws_vpc.vpc.id}"
-        cidr_block = "${aws_vpc.vpc.cidr_block}"
-    }
-}
+output "account_id"     { value = "${var.account_id}" }
+output "vpc_short_name" { value = "${var.vpc_short_name}" }
+output "vpc.id"         { value = "${aws_vpc.vpc.id}" }
+output "vpc.cidr_block" { value = "${aws_vpc.vpc.cidr_block}" }
 
-# additional outputs are specified in the VPN section below
+# note: additional outputs are specified in the VPN section below
 
 
 
@@ -151,7 +146,7 @@ module "vpn1" {
 }
 output "vpn1.customer_gateway_configuration" {
     sensitive = true
-    value = "\n${module.vpn1.customer_gateway_configuration}"
+    value = "${module.vpn1.customer_gateway_configuration_heredoc}"
 }
 
 module "vpn2" {
@@ -169,7 +164,7 @@ module "vpn2" {
 }
 output "vpn2.customer_gateway_configuration" {
     sensitive = true
-    value = "\n${module.vpn2.customer_gateway_configuration}"
+    value = "${module.vpn2.customer_gateway_configuration_heredoc}"
 }
 
 

@@ -57,7 +57,14 @@ output "id" {
 }
 
 output "customer_gateway_configuration" {
+    sensitive = true
     value = "${aws_vpn_connection.vpn.customer_gateway_configuration}"
+}
+
+# wrapped in here-document delimiters for parsing convenience
+output "customer_gateway_configuration_heredoc" {
+    sensitive = true
+    value = "<<END_XML\n${aws_vpn_connection.vpn.customer_gateway_configuration}\nEND_XML"
 }
 
 

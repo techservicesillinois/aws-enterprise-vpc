@@ -14,6 +14,8 @@ _Note_: these same building blocks can also be used to construct an Independent 
 
 If you are not familiar with Terragrunt and Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction and some good ideas for best practices.  That said, it should be possible to follow the Quick Start instructions below without first reading about these tools.
 
+One thing you should know: Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.  _If at first you don't succeed, try "apply" again._
+
 
 
 ## Quick Start
@@ -108,7 +110,7 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
    * Do you need a Core Services VPC peering, VPN connections, or both?
 
-   * Attach the `details.txt` file generated in the previous step.  This contains your VPC's name, ID, CIDR block, your AWS account number, and additional configuration details (in XML format) for the on-campus side of each VPN connection.
+   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and additional configuration details (in XML format) for the on-campus side of each VPN connection.
 
 5. If you requested a Core Services VPC peering connection, Technology Services will provide you with the ID of that peering connection (e.g. "pcx-abcd1234").
 
