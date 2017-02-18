@@ -14,7 +14,11 @@ _Note_: these same building blocks can also be used to construct an Independent 
 
 If you are not familiar with Terragrunt and Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction and some good ideas for best practices.  That said, it should be possible to follow the Quick Start instructions below without first reading about these tools.
 
-One thing you should know: Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.  _If at first you don't succeed, try "apply" again._
+Two things you should know:
+
+  * Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.  _If at first you don't succeed, try "apply" again._
+
+  * New versions of these tools are released often!  This Enterprise VPC code assumes Terraform >= 0.8.7 and Terragrunt >= 0.9.8
 
 
 
@@ -112,24 +116,16 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
    * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and additional configuration details (in XML format) for the on-campus side of each VPN connection.
 
-5. If you requested a Core Services VPC peering connection, Technology Services will provide you with the ID of that peering connection (e.g. "pcx-abcd1234").
+5. If you requested a Core Services VPC peering connection, Technology Services will provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
 
-   1. Use the AWS CLI to accept the peering connection:
+       pcx_ids = ["pcx-abcd1234"]
 
-          aws ec2 accept-vpc-peering-connection --vpc-peering-connection-id pcx-abcd1234
+   and deploy the `vpc` environment again; this will automatically accept the peering connection and add a corresponding route to each of your route tables (nothing else should change).
 
-      _Note_: this will immediately change the peering connection's status from "pending-acceptance" to "provisioning", and shortly after that it should become "active".
-
-   2. Edit `vpc/terraform.tfvars` and add the new peering connection ID (enclosed in quotes), e.g.
-
-          pcx_ids = ["pcx-abcd1234"]
-
-   3. Deploy the `vpc` environment again to add the route associated with this peering to your route tables (nothing else should change):
-
-          cd vpc
-          terragrunt plan
-          terragrunt apply
-          cd ..
+       cd vpc
+       terragrunt plan
+       terragrunt apply
+       cd ..
 
 
 ### Example Service

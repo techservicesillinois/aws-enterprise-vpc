@@ -167,6 +167,14 @@ output "vpn2.customer_gateway_configuration" {
     value = "${module.vpn2.customer_gateway_configuration_heredoc}"
 }
 
+# accept the specified VPC Peering Connections
+
+resource "aws_vpc_peering_connection_accepter" "pcx" {
+    count = "${length(var.pcx_ids)}"
+    vpc_peering_connection_id = "${var.pcx_ids[count.index]}"
+    auto_accept = true
+}
+
 
 
 # create Subnets
