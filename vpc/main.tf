@@ -174,6 +174,12 @@ resource "aws_vpc_peering_connection_accepter" "pcx" {
     vpc_peering_connection_id = "${var.pcx_ids[count.index]}"
     auto_accept = true
 }
+# waiting a few seconds for this to take effect enables subnets to handle new
+# pcx routes successfully on the first try
+resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
+    triggers { t = "${join("",aws_vpc_peering_connection_accepter.pcx.*.id)}" }
+    provisioner "local-exec" { command = "sleep 3" }
+}
 
 
 
@@ -207,6 +213,7 @@ module "public1-a-net" {
     cidr_block = "192.168.0.0/27" #FIXME
     availability_zone = "${var.region}a"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     internet_gateway_id = "${aws_internet_gateway.igw.id}"
@@ -220,6 +227,7 @@ module "public1-b-net" {
     cidr_block = "192.168.0.32/27" #FIXME
     availability_zone = "${var.region}b"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     internet_gateway_id = "${aws_internet_gateway.igw.id}"
@@ -233,6 +241,7 @@ module "campus1-a-net" {
     cidr_block = "192.168.0.64/27" #FIXME
     availability_zone = "${var.region}a"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     vpn_gateway_id = "${aws_vpn_gateway.vgw.id}"
@@ -247,6 +256,7 @@ module "campus1-b-net" {
     cidr_block = "192.168.0.96/27" #FIXME
     availability_zone = "${var.region}b"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     vpn_gateway_id = "${aws_vpn_gateway.vgw.id}"
@@ -261,6 +271,7 @@ module "private1-a-net" {
     cidr_block = "192.168.0.128/27" #FIXME
     availability_zone = "${var.region}a"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     nat_gateway_id = "${module.nat-a.id}"
@@ -274,6 +285,7 @@ module "private1-b-net" {
     cidr_block = "192.168.0.160/27" #FIXME
     availability_zone = "${var.region}b"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
     endpoint_ids = ["${aws_vpc_endpoint.private-s3.id}"]
     endpoint_count = 1
     nat_gateway_id = "${module.nat-b.id}"

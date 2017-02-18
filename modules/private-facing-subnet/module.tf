@@ -21,6 +21,9 @@ variable "pcx_ids" {
     description = "Optional list of VPC peering connections e.g. pcx-abcd1234 to use in this subnet's route table"
     default = []
 }
+# workaround for https://github.com/hashicorp/terraform/issues/10462
+variable "dummy_depends_on" { default = "" }
+resource "null_resource" "dummy_depends_on" { triggers { t = "${var.dummy_depends_on}" }}
 
 variable "endpoint_ids" {
     type = "list"
@@ -63,6 +66,7 @@ module "subnet" {
     cidr_block = "${var.cidr_block}"
     availability_zone = "${var.availability_zone}"
     pcx_ids = "${var.pcx_ids}"
+    dummy_depends_on = "${null_resource.dummy_depends_on.id}"
     endpoint_ids = "${var.endpoint_ids}"
     endpoint_count = "${var.endpoint_count}"
     map_public_ip_on_launch = false

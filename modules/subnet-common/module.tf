@@ -16,6 +16,10 @@ variable map_public_ip_on_launch {}
 #variable propagating_vgws { type = "list", default = [] }
 variable rtb_id {}
 
+# workaround for https://github.com/hashicorp/terraform/issues/10462
+variable "dummy_depends_on" { default = "" }
+resource "null_resource" "dummy_depends_on" { triggers { t = "${var.dummy_depends_on}" }}
+
 
 
 output "id" {
@@ -66,6 +70,7 @@ resource "aws_route_table_association" "rtb_assoc" {
 data "aws_vpc_peering_connection" "pcx" {
     count = "${length(var.pcx_ids)}"
     id = "${var.pcx_ids[count.index]}"
+    depends_on = ["null_resource.dummy_depends_on"]
 }
 resource "aws_route" "pcx" {
     count = "${length(var.pcx_ids)}"
