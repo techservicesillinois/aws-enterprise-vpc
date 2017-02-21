@@ -1,5 +1,9 @@
 # Creates a NAT Gateway within an Enterprise VPC
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 variable "public_subnet_id" {
     description = "Public-facing subnet in which to create this NAT gateway, e.g. subnet-abcd1234"
 }

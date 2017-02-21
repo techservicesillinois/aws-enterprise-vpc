@@ -1,5 +1,9 @@
 # Creates a VPN Connection within an Enterprise VPC
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 variable "name" {
     description = "tag:Name for this VPN Connection"
 }

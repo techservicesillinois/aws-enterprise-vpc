@@ -1,6 +1,10 @@
 # Common-factor module (i.e. abstract base class) for the three types of subnets.
 # Note that this module does NOT create a default route, but returns rtb_id so that the subclass can do so.
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 variable "vpc_id" {}
 variable "name" {}
 variable "cidr_block" {}

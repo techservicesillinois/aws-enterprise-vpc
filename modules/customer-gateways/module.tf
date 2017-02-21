@@ -5,6 +5,10 @@
 # originally created by terraform.  See
 # https://github.com/hashicorp/terraform/issues/7492
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 output "customer_gateway_ids" {
     value = {
         vpnhub-aws1-pub = "${aws_customer_gateway.vpnhub-aws1-pub.id}"

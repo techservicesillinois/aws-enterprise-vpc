@@ -1,6 +1,24 @@
-variable "region" {}
-variable "account_id" {}
-variable "vpc_short_name" {}
+# Example environment to create service-oriented resources in an Enterprise VPC
+
+terraform {
+    required_version = ">= 0.8.7"
+}
+
+## Inputs (specified in terraform.tfvars)
+
+variable "region" {
+    description = "AWS region for this VPC, e.g. us-east-2"
+}
+
+variable "account_id" {
+    description = "Your 12-digit AWS account number"
+}
+
+variable "vpc_short_name" {
+    description = "The short name of your VPC, e.g. foobar if the full name is aws-foobar-vpc"
+}
+
+
 
 provider "aws" {
     region = "${var.region}"

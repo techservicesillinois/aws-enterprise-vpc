@@ -1,5 +1,9 @@
 # Creates a campus-facing subnet within an Enterprise VPC
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 variable "vpc_id" {
     description = "VPC in which to create this subnet, e.g. vpc-abcd1234"
 }

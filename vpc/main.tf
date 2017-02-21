@@ -1,5 +1,9 @@
 # Example environment to create a fully-functional Enterprise VPC
 
+terraform {
+    required_version = ">= 0.8.7"
+}
+
 ## Inputs (specified in terraform.tfvars)
 
 variable "region" {
