@@ -30,7 +30,7 @@ output "id" {
     value = "${aws_subnet.subnet.id}"
 }
 
-output "rtb_id" {
+output "route_table_id" {
     #value = "${aws_route_table.rtb.id}"
     value = "${var.rtb_id}"
 }

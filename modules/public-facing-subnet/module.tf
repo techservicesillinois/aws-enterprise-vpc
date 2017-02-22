@@ -50,6 +50,10 @@ output "id" {
     value = "${module.subnet.id}"
 }
 
+output "route_table_id" {
+    value = "${module.subnet.route_table_id}"
+}
+
 # for convenience, since callers cannot reference module inputs directly
 output "cidr_block" {
     value = "${var.cidr_block}"
@@ -81,8 +85,7 @@ resource "aws_route_table" "rtb" {
 # default route
 
 resource "aws_route" "default" {
-    #route_table_id = "${aws_route_table.rtb.id}"
-    route_table_id = "${module.subnet.rtb_id}"
+    route_table_id = "${module.subnet.route_table_id}"
     destination_cidr_block = "0.0.0.0/0"
     gateway_id = "${var.internet_gateway_id}"
 }
