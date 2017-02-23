@@ -81,8 +81,8 @@ resource "aws_route" "pcx" {
     #route_table_id = "${aws_route_table.rtb.id}"
     route_table_id = "${var.rtb_id}"
     # pick whichever CIDR block (requester or accepter) isn't _our_ CIDR block
-    destination_cidr_block = "${replace(data.aws_vpc_peering_connection.pcx.peer_cidr_block, data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx.cidr_block)}"
-    vpc_peering_connection_id = "${element(data.aws_vpc_peering_connection.pcx.*.id, count.index)}"
+    destination_cidr_block = "${replace(data.aws_vpc_peering_connection.pcx.*.peer_cidr_block[count.index], data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx.*.cidr_block[count.index])}"
+    vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pcx.*.id[count.index]}"
 }
 
 # routes for VPC Endpoints (if any)
