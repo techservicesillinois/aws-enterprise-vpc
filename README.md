@@ -1,6 +1,6 @@
 # AWS Enterprise VPC Example
 
-This example is intended to help you efficiently deploy your own Enterprise VPC (see **TODO:KB LINK**) using infrastructure-as-code (IaC).
+This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
 There is no one-size-fits-all blueprint for an entire VPC; while they all generally have the same building blocks, the details can vary widely depending on your individual needs.  To that end, this repository provides:
 
@@ -8,17 +8,13 @@ There is no one-size-fits-all blueprint for an entire VPC; while they all genera
 
   2. a set of example IaC environments for shared networking resources (`global/` and `vpc/`) which combine those modules and a few primitives together into a fully-functional Enterprise VPC
 
-  3. an example service environment (`example-service/`) which demonstrates how to look up previously-created VPC and Subnet resources by tag:Name in order to build service-oriented resources on top of them, in this case launching an EC2 instance into one of those subnets.
+  3. an example service environment (`example-service/`) which demonstrates how to look up previously-created VPC and Subnet resources by tag:Name in order to build service-oriented resources on top of them, in this case launching an EC2 instance into one of the subnets.
 
 _Note_: these same building blocks can also be used to construct an Independent VPC.
 
 If you are not familiar with Terragrunt and Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction and some good ideas for best practices.  That said, it should be possible to follow the Quick Start instructions below without first reading about these tools.
 
-Two things you should know:
-
-  * Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.  _If at first you don't succeed, try "apply" again._
-
-  * New versions of these tools are released often!  This Enterprise VPC code assumes Terraform >= 0.8.7 and Terragrunt >= 0.9.8
+One thing you should know: **if at first you don't succeed, try "apply" again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.
 
 
 
@@ -47,12 +43,14 @@ You will need:
    * in `vpc/main.tf`:
      - all occurrences of cidr_block
 
-You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Example diagram (**TODO:KB LINK**).
+You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
+![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
 ### Workstation Setup
 
-You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  The all-important Terraform state files are automatically synced to S3, so you can run it from a different workstation every day as long as you follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn): "The master branch of the live repository is a 1:1 representation of what’s actually deployed in production."
+You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  The all-important Terraform state files are automatically synced to S3, so you can run it from a different workstation every day as long as you follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn):
+> "The master branch of the live repository is a 1:1 representation of what’s actually deployed in production."
 
 _Note_: these instructions were written for a GNU/Linux workstation; some adaptation may be necessary for other operating systems.
 
@@ -95,7 +93,8 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
      If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
 
-         aws sns subscribe --region us-east-1 --topic-arn arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic --protocol email --notification-endpoint my-email@example.com
+         aws sns subscribe --region us-east-1 --topic-arn arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic \
+          --protocol email --notification-endpoint my-email@example.com
 
      (then check your email and follow the confirmation instructions)
 
