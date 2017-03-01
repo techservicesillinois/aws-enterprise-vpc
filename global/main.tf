@@ -49,7 +49,7 @@ provider "aws" {
 # Customer Gateways
 
 module "cgw" {
-    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.5"
+    #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.6"
     source = "../modules/customer-gateways"
 }
 
