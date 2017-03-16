@@ -182,3 +182,19 @@ If you wish to keep live infrastructure-as-code for several different AWS accoun
     │   ├── global/
     │   └── vpc/
     └── modules/
+
+## Known Issues
+
+* After adding a VPC Peering Connection to pcx_ids, each subsequent run rebuilds the route table entries correponding to the peering connection (e.g. `module.public1-a-net.subnet.aws_route.pcx`).  This appears to be a consequence of https://github.com/hashicorp/terraform/issues/3449 and will hopefully be fixed by a future Terraform release.
+
+* Due to https://github.com/hashicorp/terraform/issues/12935, removing previously-configured VPC Peering Connections by emptying `pcx_ids` may result in errors like this:
+
+  > module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx: list "var.pcx_ids" does not have any elements so cannot determine type.
+
+  The workaround is to manually remove the offending data source's existing state:
+
+      terraform state rm module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx
+
+Wishlist:
+- public github repository for this code (and replace local module paths with git paths)
+- include optional RDNS Forwarders (and DHCP options)
