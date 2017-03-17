@@ -1,7 +1,20 @@
 # Example environment to create service-oriented resources in an Enterprise VPC
 
 terraform {
-    required_version = ">= 0.8.7"
+  required_version = ">= 0.9.1"
+
+  backend "s3" {
+    region = "us-east-2"
+    lock_table = "terraform"
+    encrypt = "true"
+
+    # must be unique to your AWS account; try replacing
+    # uiuc-tech-services-sandbox with the friendly name of your account
+    bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
+
+    # must be unique (within bucket) to this repository + environment
+    key = "FIXME/example-service/terraform.tfstate" #FIXME
+  }
 }
 
 ## Inputs (specified in terraform.tfvars)

@@ -1,7 +1,32 @@
 # Example environment to create a fully-functional Enterprise VPC
 
 terraform {
-    required_version = ">= 0.8.7"
+  required_version = ">= 0.9.1"
+
+  backend "s3" {
+    region = "us-east-2"
+    lock_table = "terraform"
+    encrypt = "true"
+
+    # must be unique to your AWS account; try replacing
+    # uiuc-tech-services-sandbox with the friendly name of your account
+    bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
+
+    # must be unique (within bucket) to this repository + environment
+    key = "Shared Networking/vpc/terraform.tfstate"
+  }
+}
+
+## Read remote state from global environment
+
+data "terraform_remote_state" "global" {
+    backend = "s3"
+    # must match ../global/main.tf
+    config {
+        region = "us-east-2"
+        bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
+        key = "Shared Networking/global/terraform.tfstate"
+    }
 }
 
 ## Inputs (specified in terraform.tfvars)
@@ -12,10 +37,6 @@ variable "region" {
 
 variable "account_id" {
     description = "Your 12-digit AWS account number"
-}
-
-variable "bucket" {
-    description = "S3 bucket used to store Terraform state"
 }
 
 variable "vpc_short_name" {
@@ -38,20 +59,6 @@ output "vpc.id"         { value = "${aws_vpc.vpc.id}" }
 output "vpc.cidr_block" { value = "${aws_vpc.vpc.cidr_block}" }
 
 # note: additional outputs are specified in the VPN section below
-
-
-
-## Remote state from global environment
-
-data "terraform_remote_state" "global" {
-    backend = "s3"
-    # must match effective terragrunt config for global environment
-    config {
-        region = "${var.region}"
-        bucket = "${var.bucket}"
-        key = "Shared Networking/global/terraform.tfstate"
-    }
-}
 
 
 

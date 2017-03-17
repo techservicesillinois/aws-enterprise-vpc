@@ -1,6 +1,6 @@
 # AWS Enterprise VPC Example
 
-This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
+This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC, as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
 There is no one-size-fits-all blueprint for an entire VPC; while they all generally have the same building blocks, the details can vary widely depending on your individual needs.  To that end, this repository provides:
 
@@ -12,9 +12,9 @@ There is no one-size-fits-all blueprint for an entire VPC; while they all genera
 
 _Note_: these same building blocks can also be used to construct an Independent VPC.
 
-If you are not familiar with Terragrunt and Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction and some good ideas for best practices.  That said, it should be possible to follow the Quick Start instructions below without first reading about these tools.
+If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, though some details are now obsolete due to recent improvements in Terraform (for example, we no longer need the separate "Terragrunt" tool to effectively manage remote state configuration).  You can also consult Terraform's official [Getting Started Guide](https://www.terraform.io/intro/getting-started/install.html).  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
 
-One thing you should know: **if at first you don't succeed, try "apply" again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because it didn't wait quite long enough between steps.
+One thing you should know: **if at first you don't succeed, try "apply" again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because Terraform didn't wait long enough between steps.
 
 
 
@@ -25,42 +25,64 @@ One thing you should know: **if at first you don't succeed, try "apply" again.**
 
 You will need:
 
-1. an AWS account
+  * an AWS account
 
-2. an official name (e.g. 'aws-foobar-vpc') and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
+  * an official name (e.g. "aws-foobar-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-3. your own copy of this code, in your own source control repository (you can clone this one to use as a starting point), customized to reflect your AWS account and the specific subnets and other components you want your VPC to comprise
+  * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html)
+
+    1. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
+
+       * S3 bucket names are _globally_ unique, so you must choose one that is not already in use by another AWS account. One possible strategy is to use the pattern
+
+             bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu"
+
+         replacing "uiuc-tech-services-sandbox" with the friendly name of your AWS account.
+
+    2. Use AWS CLI to create the chosen bucket (replacing FIXME) and enable versioning:
+
+           aws s3api create-bucket --create-bucket-configuration LocationConstraint=us-east-2 --bucket FIXME && \
+             aws s3api put-bucket-versioning --versioning-configuration Status=Enabled --bucket FIXME
+
+    3. Use AWS CLI to create a DynamoDB table for state locking called "terraform" (this name does _not_ need to be globally unique):
+
+           aws dynamodb create-table --region us-east-2 --table-name terraform \
+               --attribute-definitions AttributeName=LockID,AttributeType=S \
+               --key-schema AttributeName=LockID,KeyType=HASH \
+               --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
+
+  * your own copy of this code, in your own source control repository (you can clone this one to use as a starting point), **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise
 
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
-   * in `.terragrunt`:
-     - bucket
    * in `global/terraform.tfvars`:
      - account_id
+   * in `global/main.tf`:
+     - bucket
    * in `vpc/terraform.tfvars`:
      - account_id
-     - bucket
      - vpc_short_name
    * in `vpc/main.tf`:
-     - all occurrences of cidr_block
+     - bucket (2 occurrences, same value)
+     - cidr_block (multiple occurrences, all different values)
 
-You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
+You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  Note in particular that quite a few components can be omitted if you don't need any campus-facing subnets.
+
+If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
 ### Workstation Setup
 
-You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  The all-important Terraform state files are automatically synced to S3, so you can run it from a different workstation every day as long as you follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn):
-> "The master branch of the live repository is a 1:1 representation of what’s actually deployed in production."
+_Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
 
-_Note_: these instructions were written for a GNU/Linux workstation; some adaptation may be necessary for other operating systems.
+You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn):
+> **"The master branch of the live [source control] repository is a 1:1 representation of what’s actually deployed in production."**
 
-1. Download the [Terragrunt](https://github.com/gruntwork-io/terragrunt/releases) binary for your system, make it executable (chmod +x), and put it somewhere on your PATH (e.g. `/usr/local/bin/terragrunt`)
+To set up a new workstation:
 
-2. Download [Terraform](https://www.terraform.io/downloads.html) for your system, extract the binary from the .zip archive, and put it somewhere **NOT** on your PATH (e.g. `/usr/local/libexec/terraform`) so that you won't accidentally invoke it directly.
+1. Download [Terraform](https://www.terraform.io/downloads.html) for your system, extract the binary from the .zip archive, and put it somewhere on your PATH (e.g. `/usr/local/bin/terraform`)
 
-3. Set environment variable `TERRAGRUNT_TFPATH=/usr/local/libexec/terraform` to tell Terragrunt where to find Terraform.
-
-4. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and configure it with an appropriate set of credentials to access your AWS account.
+2. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and configure it with an appropriate set of credentials to access your AWS account.
 
    * You may find it convenient to use a named profile in order to easily switch between multiple AWS accounts on the same workstation:
 
@@ -81,15 +103,15 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
 1. Set `AWS_PROFILE` if needed (see above).
 
-2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account:
+2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account.
 
        cd global
-       terragrunt get
-       terragrunt plan
-       terragrunt apply
+       terraform init
+       terraform plan
+       terraform apply
        cd ..
 
-   * In addition to the required resources, this environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://aws.amazon.com/answers/networking/vpn-monitor/), as well as a Simple Notification Service topic which will be used later to create alarm notifications based on this monitoring.
+   * As an optional feature, this environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://aws.amazon.com/answers/networking/vpn-monitor/) and a Simple Notification Service topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
 
      If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
 
@@ -101,13 +123,13 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 3. Deploy the `vpc` environment:
 
        cd vpc
-       terragrunt get
-       terragrunt plan
-       terragrunt apply
+       terraform init
+       terraform plan
+       terraform apply
 
    and generate the detailed output file needed for the next step:
 
-       terragrunt output > details.txt
+       terraform output > details.txt
 
 4. Contact Technology Services to enable Enterprise VPC networking features:
 
@@ -115,28 +137,29 @@ _Note_: these instructions were written for a GNU/Linux workstation; some adapta
 
    * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and additional configuration details (in XML format) for the on-campus side of each VPN connection.
 
-5. If you requested a Core Services VPC peering connection, Technology Services will provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
+5. If you requested a Core Services VPC peering connection, Technology Services will initiate one and provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
 
        pcx_ids = ["pcx-abcd1234"]
 
    and deploy the `vpc` environment again; this will automatically accept the peering connection and add a corresponding route to each of your route tables (nothing else should change).
 
        cd vpc
-       terragrunt plan
-       terragrunt apply
+       terraform plan
+       terraform apply
        cd ..
 
 
 ### Example Service
 
-If you like, you can now deploy the `example-service` environment to launch an EC2 instance in one of your new public-facing subnets (note that you will need to edit `example-service/terraform.tfvars`).
+If you like, you can now deploy the `example-service` environment to launch an EC2 instance in one of your new public-facing subnets (note that you will need to edit `example-service/main.tf` and `example-service/terraform.tfvars` first).
 
     cd example-service
-    terragrunt plan
-    terragrunt apply
+    terraform init
+    terraform plan
+    terraform apply
     cd ..
 
-If you do deploy this environment, be sure to `terragrunt destroy` it afterward (since it doesn't do anything useful).
+If you do deploy this environment, be sure to `terraform destroy` it afterward (since it doesn't do anything useful).
 
 Notice that the `example-service` code does _not_ directly depend on any of the shared networking code or the remote state it produces; it merely requires that the AWS account contains a VPC with a certain tag:Name, and that this VPC contains a Subnet with a certain tag:Name.
 
@@ -145,45 +168,52 @@ Notice that the `example-service` code does _not_ directly depend on any of the 
 ## Where To Go From Here
 ------------------------
 
-After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (illustrated by `example-service/`).  In general, that code does _not_ need to reside in the same repository with the IaC for your shared networking resources which are used by many services; on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
+After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (as illustrated by `example-service/`).  In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
 
   * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if for some reason the entire VPC must be rebuilt.
 
-  * Multiple IaC repositories which use the same AWS account can all specify the same bucket in `.terragrunt`, **provided you replace the "Shared Networking" portion of the `key` and `state_file_id` values with a different string that is guaranteed to be unique for each such repository.**
+  * Multiple IaC environments for the same AWS account can all use the same S3 bucket and DynamoDB table for Terraform state, **provided that each environment's backend configuration stanza specifies a different `key` value**.
 
-    Note that our use of `path_relative_to_include()` ensures uniqueness for multiple environments _within_ the "Shared Networking" repository.
+    This example code suggests the following pattern:
+
+        key = "Shared Networking/global/terraform.tfstate"
+        key = "Shared Networking/vpc/terraform.tfstate"
+
+    where "Shared Networking" is meant to uniquely identify this IaC _repository_, and "global" or "vpc" the environment directory within this repository.
 
 
 ### Multiple VPCs
 
 If you need to create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `vpc2/` and modify the necessary values in the new files.
 
+Important: **don't forget to change `key`** in the backend configuration stanza of `vpc2/main.tf`
+
     .
-    ├── .terragrunt
     ├── global/
     ├── modules/
     ├── vpc/
     └── vpc2/
 
-_Note_: you can name an environment directory however you like, but be very careful about modifying its name _after_ you have started using it, because the directory path is automatically interpolated by Terragrunt into the `key` used to store that environment's Terraform state file in S3.
-
 
 ### Multiple AWS accounts
 
-If you wish to keep live infrastructure-as-code for several different AWS accounts in the same source control repository, put the code for each AWS account in a separate top-level directory with its own `.terragrunt` file (specifying an appropriate bucket for that account) and its own set of environments, e.g.
+If you wish to keep IaC for several different AWS accounts in the same repository, put the code for each AWS account in a separate top-level directory with its own set of environments, e.g.
 
     .
     ├── account1/
-    │   ├── .terragrunt
     │   ├── global/
     │   └── vpc/
     ├── account2/
-    │   ├── .terragrunt
     │   ├── global/
     │   └── vpc/
     └── modules/
 
+Note that each AWS account will need to use a different S3 bucket for Terraform state.
+
+
+
 ## Known Issues
+---------------
 
 * After adding a VPC Peering Connection to pcx_ids, each subsequent run rebuilds the route table entries correponding to the peering connection (e.g. `module.public1-a-net.subnet.aws_route.pcx`).  This appears to be a consequence of https://github.com/hashicorp/terraform/issues/3449 and will hopefully be fixed by a future Terraform release.
 
