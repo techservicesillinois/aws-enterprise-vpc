@@ -45,7 +45,7 @@ variable "endpoint_ids" {
   default     = []
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/1497
+# workaround for https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_count" {
   description = "number of elements in endpoint_ids"
   default     = 0
@@ -56,7 +56,7 @@ variable "nat_gateway_id" {
   default     = ""
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/1497
+# workaround for https://github.com/hashicorp/terraform/issues/4149
 variable "use_nat_gateway" {
   description = "set this to false if a NAT gateway is _not_ provided"
   default     = true

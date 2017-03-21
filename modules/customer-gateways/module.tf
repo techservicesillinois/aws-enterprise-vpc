@@ -1,9 +1,5 @@
 # Creates Customer Gateways in your AWS account corresponding to the VPN
 # terminators provided by Technology Services
-#
-# Note: this may result in terraform taking over an existing cgw that was not
-# originally created by terraform.  See
-# https://github.com/hashicorp/terraform/issues/7492
 
 terraform {
   required_version = ">= 0.9.1"

@@ -45,7 +45,7 @@ variable "endpoint_ids" {
   default     = []
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/1497
+# workaround for https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_count" {
   description = "number of elements in endpoint_ids"
   default     = 0

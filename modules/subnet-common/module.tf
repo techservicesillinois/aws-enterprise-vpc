@@ -20,7 +20,7 @@ variable "endpoint_ids" {
   type = "list"
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/1497
+# workaround for https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_count" {}
 
 variable map_public_ip_on_launch {}
