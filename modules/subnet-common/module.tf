@@ -22,7 +22,7 @@ variable rtb_id {}
 
 # workaround for https://github.com/hashicorp/terraform/issues/10462
 variable "dummy_depends_on" { default = "" }
-resource "null_resource" "dummy_depends_on" { triggers { t = "${var.dummy_depends_on}" }}
+#resource "null_resource" "dummy_depends_on" { triggers { t = "${var.dummy_depends_on}" }}
 
 
 
@@ -73,8 +73,13 @@ resource "aws_route_table_association" "rtb_assoc" {
 
 data "aws_vpc_peering_connection" "pcx" {
     count = "${length(var.pcx_ids)}"
-    id = "${var.pcx_ids[count.index]}"
-    depends_on = ["null_resource.dummy_depends_on"]
+    #id = "${var.pcx_ids[count.index]}"
+    #depends_on = ["null_resource.dummy_depends_on"]
+
+    # As of Terraform 0.9.1, using depends_on here results in rebuilding the
+    # aws_route every single run even if nothing has changed.  Work around by
+    # embedding the dependency within id instead.
+    id = "${replace(var.pcx_ids[count.index],var.dummy_depends_on,var.dummy_depends_on)}"
 }
 resource "aws_route" "pcx" {
     count = "${length(var.pcx_ids)}"
