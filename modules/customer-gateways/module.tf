@@ -1,5 +1,7 @@
 # Creates Customer Gateways in your AWS account corresponding to the VPN
 # terminators provided by Technology Services
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
   required_version = ">= 0.9.1"

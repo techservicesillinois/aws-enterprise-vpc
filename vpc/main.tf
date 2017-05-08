@@ -1,4 +1,6 @@
 # Example environment to create a fully-functional Enterprise VPC
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
   required_version = ">= 0.9.1"

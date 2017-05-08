@@ -1,5 +1,7 @@
 # Common-factor module (i.e. abstract base class) for the three types of subnets.
 # Note that this module does NOT create a default route, but returns rtb_id so that the subclass can do so.
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
   required_version = ">= 0.9.1"

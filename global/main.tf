@@ -1,4 +1,6 @@
 # Resources created once for the whole AWS account
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
   required_version = ">= 0.9.1"
