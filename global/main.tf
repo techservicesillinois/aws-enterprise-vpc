@@ -60,8 +60,7 @@ provider "aws" {
 # Customer Gateways
 
 module "cgw" {
-  #source = "git::https://git.cites.illinois.edu/ts-networking/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.6"
-  source = "../modules/customer-gateways"
+  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.7"
 }
 
 # Optional CloudWatch monitoring for VPN connections (in all regions): see

@@ -14,7 +14,7 @@ _Note_: these same building blocks can also be used to construct an Independent 
 
 If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, though some details are now obsolete due to recent improvements in Terraform (for example, we no longer need the separate "Terragrunt" tool to effectively manage remote state configuration).  You can also consult Terraform's official [Getting Started Guide](https://www.terraform.io/intro/getting-started/install.html).  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
 
-One thing you should know: **if at first you don't succeed, try "apply" again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because Terraform didn't wait long enough between steps.
+One thing you should know: **if at first you don't succeed, try 'apply' again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because Terraform didn't wait long enough between steps.
 
 
 
@@ -27,9 +27,9 @@ You will need:
 
   * an AWS account
 
-  * an official name (e.g. "aws-foobar-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
+  * an official name (e.g. 'aws-foobar-vpc') and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html)
+  * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).  To create these resources:
 
     1. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
 
@@ -37,21 +37,25 @@ You will need:
 
              bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu"
 
-         replacing "uiuc-tech-services-sandbox" with the friendly name of your AWS account.
+         replacing 'uiuc-tech-services-sandbox' with the friendly name of your AWS account.
 
-    2. Use AWS CLI to create the chosen bucket (replacing FIXME) and enable versioning:
+    2. Use AWS CLI to create the chosen bucket (replacing 'FIXME') and enable versioning:
 
-           aws s3api create-bucket --create-bucket-configuration LocationConstraint=us-east-2 --bucket FIXME && \
-             aws s3api put-bucket-versioning --versioning-configuration Status=Enabled --bucket FIXME
+           aws s3api create-bucket --create-bucket-configuration LocationConstraint=us-east-2 \
+             --bucket FIXME
+           aws s3api put-bucket-versioning --versioning-configuration Status=Enabled \
+             --bucket FIXME
 
-    3. Use AWS CLI to create a DynamoDB table for state locking called "terraform" (this name does _not_ need to be globally unique):
+    3. Use AWS CLI to create a DynamoDB table for state locking called 'terraform' (this name does _not_ need to be globally unique):
 
            aws dynamodb create-table --region us-east-2 --table-name terraform \
-               --attribute-definitions AttributeName=LockID,AttributeType=S \
-               --key-schema AttributeName=LockID,KeyType=HASH \
-               --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
+             --attribute-definitions AttributeName=LockID,AttributeType=S \
+             --key-schema AttributeName=LockID,KeyType=HASH \
+             --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
 
-  * your own copy of this code, in your own source control repository (you can clone this one to use as a starting point), **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise
+  * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.  (Note that you do _not_ need your own copy of the modules.)
+
+    Download the [latest release of this repository](https://github.com/cites-illinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
 
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
    * in `global/terraform.tfvars`:
@@ -131,7 +135,7 @@ To set up a new workstation:
 
        terraform output > details.txt
 
-4. Contact Technology Services to enable Enterprise VPC networking features:
+4. Contact Technology Services to enable Enterprise VPC networking features for your VPC:
 
    * Do you need a Core Services VPC peering, VPN connections, or both?
 
@@ -179,7 +183,7 @@ After your VPC is deployed, the next logical step is to write additional infrast
         key = "Shared Networking/global/terraform.tfstate"
         key = "Shared Networking/vpc/terraform.tfstate"
 
-    where "Shared Networking" is meant to uniquely identify this IaC _repository_, and "global" or "vpc" the environment directory within this repository.
+    where 'Shared Networking' is meant to uniquely identify this IaC _repository_, and 'global' or 'vpc' the environment directory within this repository.
 
 
 ### Multiple VPCs
@@ -190,7 +194,6 @@ Important: **don't forget to change `key`** in the backend configuration stanza 
 
     .
     ├── global/
-    ├── modules/
     ├── vpc/
     └── vpc2/
 
@@ -203,10 +206,9 @@ If you wish to keep IaC for several different AWS accounts in the same repositor
     ├── account1/
     │   ├── global/
     │   └── vpc/
-    ├── account2/
-    │   ├── global/
-    │   └── vpc/
-    └── modules/
+    └── account2/
+        ├── global/
+        └── vpc/
 
 Note that each AWS account will need to use a different S3 bucket for Terraform state.
 
@@ -224,5 +226,4 @@ Note that each AWS account will need to use a different S3 bucket for Terraform 
       terraform state rm module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx
 
 Wishlist:
-- public github repository for this code (and replace local module paths with git paths)
 - include optional RDNS Forwarders (and DHCP options)
