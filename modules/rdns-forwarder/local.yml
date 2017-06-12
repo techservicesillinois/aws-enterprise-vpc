@@ -1,0 +1,9 @@
+# ansible-pull playbook to configure a Recursive DNS Forwarder
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
+---
+- name: Localhost
+  hosts: localhost
+  become: true
+  roles:
+    - rdns-forwarder

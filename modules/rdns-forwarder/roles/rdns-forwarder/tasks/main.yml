@@ -1,0 +1,95 @@
+# Copyright (c) 2017 Board of Trustees University of Illinois
+---
+- ec2_facts:
+
+- name: install packages
+  package: name={{ item }} state=present
+  with_items:
+    - bind
+    - awslogs
+
+- name: generate rndc.key
+  command: /usr/sbin/rndc-confgen -a -u named -r /dev/urandom
+  args:
+    creates: /etc/rndc.key
+
+# update /var/named/zones.conf
+- include: "zones.yml"
+  tags:
+    - zones
+
+- name: named.conf
+  template:
+    dest: /etc/named.conf
+    src: etc/named.conf.j2
+    force: yes
+    validate: named-checkconf %s
+  notify: rndc reconfig
+
+- name: named OPTIONS
+  lineinfile:
+    dest: /etc/sysconfig/named
+    regexp: '^OPTIONS='
+    line: 'OPTIONS="-4"'
+  notify: restart named
+
+- name: "start named at boot"
+  service:
+    name: named
+    enabled: yes
+  # trigger a reboot (rather than just applying state: started now) to make
+  # sure everything works as intended
+  notify: reboot
+
+- name: update existing packages
+  yum:
+    name: '*'
+    state: latest
+  notify: reboot
+
+- name: logrotate.d/ansible
+  template:
+    dest: /etc/logrotate.d/ansible
+    src: etc/logrotate.d/ansible.j2
+    force: yes
+
+- name: awslogs.conf
+  template:
+    dest: /etc/awslogs/awslogs.conf
+    src: etc/awslogs/awslogs.conf.j2
+    force: yes
+
+- name: awslogs region
+  lineinfile:
+    dest: /etc/awslogs/awscli.conf
+    regexp: '^region ='
+    line: 'region = {{ ansible_ec2_placement_region }}'
+
+- name: "start awslogs at boot"
+  service:
+    name: awslogs
+    enabled: yes
+
+# update zone configuration (using current playbook) once per hour
+- name: "cron task: update zone list"
+  cron:
+    name: update zone list
+    job: "ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones > /dev/null"
+    minute: "{{ zone_update.minute }}"
+
+# perform a full ansible-pull update (including upstream playbook changes) once per month
+- name: "cron task: ansible-pull"
+  cron:
+    name: ansible-pull
+    job: "ansible-pull --url={{ ansible_pull_url }} --checkout={{ ansible_pull_checkout }} --directory={{ ansible_pull_directory }} modules/rdns-forwarder/local.yml > /dev/null"
+    day: "{{ full_update.day }}"
+    hour: "{{ full_update.hour }}"
+    minute: "{{ full_update.minute }}"
+
+# workaround for https://github.com/ansible/ansible/issues/22517
+- name: "fix .git/config"
+  lineinfile:
+    dest: "{{ ansible_pull_directory }}/.git/config"
+    regexp: '^(\s*fetch =) \+refs/heads/master:refs/remotes/origin/master'
+    backrefs: yes
+    line: '\1 +refs/heads/{{ ansible_pull_checkout }}:refs/remotes/origin/{{ ansible_pull_checkout }}'

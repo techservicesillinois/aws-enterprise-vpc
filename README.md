@@ -4,7 +4,7 @@ This infrastructure-as-code (IaC) repository is intended to help you efficiently
 
 There is no one-size-fits-all blueprint for an entire VPC; while they all generally have the same building blocks, the details can vary widely depending on your individual needs.  To that end, this repository provides:
 
-  1. several reusable Terraform modules (under `modules/`) to construct the various individual components that make up an Enterprise VPC, abstracting away internal details where possible
+  1. a collection of reusable Terraform modules (under `modules/`) to construct the various individual components that make up an Enterprise VPC, abstracting away internal details where possible
 
   2. a set of example IaC environments for shared networking resources (`global/` and `vpc/`) which combine those modules and a few primitives together into a fully-functional Enterprise VPC
 
@@ -27,11 +27,13 @@ You will need:
 
   * an AWS account
 
-  * an official name (e.g. 'aws-foobar-vpc') and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
+  * an official name (e.g. "aws-foobar-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
   * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).  To create these resources:
 
-    1. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
+    1. Set up the AWS Command Line Interface on your workstation (see "Workstation Setup" further down).
+
+    2. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
 
        * S3 bucket names are _globally_ unique, so you must choose one that is not already in use by another AWS account. One possible strategy is to use the pattern
 
@@ -39,23 +41,25 @@ You will need:
 
          replacing 'uiuc-tech-services-sandbox' with the friendly name of your AWS account.
 
-    2. Use AWS CLI to create the chosen bucket (replacing 'FIXME') and enable versioning:
+    3. Use AWS CLI to create the chosen bucket (replacing 'FIXME') and enable versioning:
 
            aws s3api create-bucket --create-bucket-configuration LocationConstraint=us-east-2 \
              --bucket FIXME
            aws s3api put-bucket-versioning --versioning-configuration Status=Enabled \
              --bucket FIXME
 
-    3. Use AWS CLI to create a DynamoDB table for state locking called 'terraform' (this name does _not_ need to be globally unique):
+    4. Use AWS CLI to create a DynamoDB table for state locking, called "terraform" (this name does _not_ need to be globally unique):
 
            aws dynamodb create-table --region us-east-2 --table-name terraform \
              --attribute-definitions AttributeName=LockID,AttributeType=S \
              --key-schema AttributeName=LockID,KeyType=HASH \
              --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
 
-  * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.  (Note that you do _not_ need your own copy of the modules.)
+  * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.
 
     Download the [latest release of this repository](https://github.com/cites-illinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
+
+    Note that you do _not_ need your own copy of the module code; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this online repository.
 
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
    * in `global/terraform.tfvars`:
@@ -96,7 +100,7 @@ To set up a new workstation:
          Default region name [None]: us-east-2
          Default output format [None]: json
 
-     If you do, set the `AWS_PROFILE` environment variable so that Terragrunt and Terraform (as well as the AWS CLI itself) will know which set of credentials to use:
+     If you do, set the `AWS_PROFILE` environment variable so that Terraform (as well as the AWS CLI itself) will know which set of credentials to use:
 
          export AWS_PROFILE=uiuc-tech-services-sandbox
 
@@ -115,7 +119,7 @@ To set up a new workstation:
        terraform apply
        cd ..
 
-   * As an optional feature, this environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://aws.amazon.com/answers/networking/vpn-monitor/) and a Simple Notification Service topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
+   * As an optional feature, the example global environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://aws.amazon.com/answers/networking/vpn-monitor/) and creates a [Simple Notification Service](https://aws.amazon.com/sns/) topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
 
      If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
 
@@ -139,7 +143,7 @@ To set up a new workstation:
 
    * Do you need a Core Services VPC peering, VPN connections, or both?
 
-   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and additional configuration details (in XML format) for the on-campus side of each VPN connection.
+   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and some additional configuration details (in XML format) for the on-campus side of each VPN connection.
 
 5. If you requested a Core Services VPC peering connection, Technology Services will initiate one and provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
 
@@ -151,6 +155,18 @@ To set up a new workstation:
        terraform plan
        terraform apply
        cd ..
+
+6. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
+
+   * Edit `vpc/terraform.tfvars` to specify the IPv4 addresses of the Core Services Resolvers in the Core Services VPC with which your VPC has a peering connection, e.g.
+
+         core_services_resolvers = ["10.224.1.50", "10.224.1.100"]
+
+   * Edit `vpc/rdns.tf` and uncomment _only one section_, depending on which option you need.
+
+     _Note_: be sure to read and understand [`modules/rdns-forwarder/README.md`](modules/rdns-forwarder/README.md) before deploying Option 3.
+
+   * Deploy the `vpc` environment again (as above).
 
 
 ### Example Service
@@ -190,7 +206,7 @@ After your VPC is deployed, the next logical step is to write additional infrast
 
 If you need to create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `vpc2/` and modify the necessary values in the new files.
 
-Important: **don't forget to change `key`** in the backend configuration stanza of `vpc2/main.tf`
+**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `vpc2/main.tf`
 
     .
     ├── global/
@@ -214,6 +230,21 @@ Note that each AWS account will need to use a different S3 bucket for Terraform 
 
 
 
+## Versioning
+-------------
+
+MAJOR.MINOR.PATCH versions of this repository are immutable releases tracked with git tags, e.g. `vX.Y.Z`.
+
+MAJOR.MINOR versions of this repository are tracked as git branches, e.g. `vX.Y`.  These are mutable, but only for non-breaking changes (once `vX.Y.0` has been released).
+
+All [module source paths](https://www.terraform.io/docs/modules/sources.html) used within the code specify a `vX.Y` branch.
+
+What this means (using hypothetical version numbers) is that if you base your own live IaC on the example environment code from release `v1.2.3`, and then re-run it in the future after a `terraform get -update`,
+* You will automatically receive any module changes released as `v1.2.4` (which should be safe), because they appear on the `v1.2` branch.
+* You will _not_ automatically receive any module changes released as `v1.3.*` or `v2.0.*` (which might be incompatible with your usage and/or involve refactoring that could cause Terraform to unexpectedly destroy and recreate existing resources).
+
+
+
 ## Known Issues
 ---------------
 
@@ -224,6 +255,3 @@ Note that each AWS account will need to use a different S3 bucket for Terraform 
   The workaround is to manually remove the offending data source's existing state:
 
       terraform state rm module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx
-
-Wishlist:
-- include optional RDNS Forwarders (and DHCP options)

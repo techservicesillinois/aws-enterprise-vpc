@@ -14,3 +14,6 @@ vpc_short_name = "example" #FIXME
 # Add VPC Peering Connection IDs here *after* the peering is created
 #pcx_ids = ["pcx-abcd1234"]
 
+# IPv4 addresses of Core Services Resolvers in your peer Core Services VPC
+#core_services_resolvers = ["10.224.1.50", "10.224.1.100"]
+

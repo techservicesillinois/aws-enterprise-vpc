@@ -1,0 +1,4 @@
+# Copyright (c) 2017 Board of Trustees University of Illinois
+---
+zone_list_repo: https://ipam-tools.techservices.illinois.edu/git/rdns_forwarder_zones.git
+zone_list_directory: /root/rdns_forwarder_zones

@@ -1,0 +1,42 @@
+# named.conf for AWS RDNS Forwarders using BIND from Amazon Linux
+#
+# Copyright (c) 2017 Board of Trustees University of Illinois
+#
+# note: the distribution's default file can be found at
+# /usr/share/doc/bind-9.8.2/named.conf.default
+
+options {
+    directory "/var/named";
+    dump-file "/var/named/data/cache_dump.db";
+    statistics-file "/var/named/data/named_stats.txt";
+    memstatistics-file "/var/named/data/named_mem_stats.txt";
+
+    allow-query { localhost; {{ vpc_cidr }}; };
+    recursion yes;
+
+    # forward queries to AmazonProvidedDNS by default
+    forwarders { {{ amazon_dns }}; };
+    forward only;
+
+    dnssec-enable no;
+    dnssec-validation no;
+
+    # tune caching behavior (values in seconds)
+    max-cache-ttl  {{ max_cache_ttl | default(900) }};
+    max-ncache-ttl {{ max_ncache_ttl | default(900) }};
+
+    version none;
+};
+
+logging {
+    # log INFO and above to rsyslog (i.e. /var/log/messages)
+    category default { default_syslog; };
+};
+
+include "/etc/rndc.key";
+controls {
+    inet 127.0.0.1 allow { localhost; } keys { "rndc-key"; };
+};
+
+# forward queries for University zones to Core Services Resolvers instead
+include "/var/named/zones.conf";

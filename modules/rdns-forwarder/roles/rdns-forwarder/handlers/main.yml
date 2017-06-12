@@ -1,0 +1,23 @@
+# Copyright (c) 2017 Board of Trustees University of Illinois
+---
+- name: reboot
+  debug: msg='reboot triggered'
+  changed_when: true
+  register: reboot_flag
+  notify: _reboot_system
+
+- name: rndc reconfig
+  command: rndc reconfig
+  when: reboot_flag is undefined
+
+- name: restart named
+  service:
+    name: named
+    state: restarted
+  when: reboot_flag is undefined
+
+# actually reboot (letting Ansible exit first)
+- name: _reboot_system
+  shell: sleep 2 && /sbin/reboot
+  async: 10
+  poll: 0

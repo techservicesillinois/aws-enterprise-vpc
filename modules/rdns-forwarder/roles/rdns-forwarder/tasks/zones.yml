@@ -1,0 +1,19 @@
+# Copyright (c) 2017 Board of Trustees University of Illinois
+---
+- name: update zone_list
+  git:
+    dest: "{{ zone_list_directory }}"
+    repo: "{{ zone_list_repo }}"
+
+- name: read zone_list
+  command: cat {{ zone_list_directory }}/zone_list
+  register: zone_list
+  changed_when: false
+
+- name: update zones.conf
+  template:
+    dest: /var/named/zones.conf
+    src: var/named/zones.conf.j2
+    force: yes
+    validate: named-checkconf %s
+  notify: rndc reconfig
