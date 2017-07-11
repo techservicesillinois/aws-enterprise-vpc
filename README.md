@@ -248,10 +248,5 @@ What this means (using hypothetical version numbers) is that if you base your ow
 ## Known Issues
 ---------------
 
-* Due to https://github.com/hashicorp/terraform/issues/12935, removing previously-configured VPC Peering Connections by emptying `pcx_ids` may result in errors like this:
+* none
 
-  > module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx: list "var.pcx_ids" does not have any elements so cannot determine type.
-
-  The workaround is to manually remove the offending data source's existing state:
-
-      terraform state rm module.public1-a-net.module.subnet.data.aws_vpc_peering_connection.pcx
