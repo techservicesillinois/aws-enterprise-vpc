@@ -27,7 +27,7 @@ You will need:
 
   * an AWS account
 
-  * an official name (e.g. "aws-foobar-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
+  * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
   * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).  To create these resources:
 

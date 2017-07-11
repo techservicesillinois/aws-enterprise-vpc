@@ -43,7 +43,7 @@ variable "account_id" {
 }
 
 variable "vpc_short_name" {
-  description = "The short name of your VPC, e.g. foobar if the full name is aws-foobar-vpc"
+  description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
 }
 
 variable "pcx_ids" {

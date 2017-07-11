@@ -8,7 +8,7 @@ region = "us-east-2"
 # Your 12-digit AWS account number
 account_id = "999999999999" #FIXME
 
-# The short name of your VPC, e.g. "foobar" if the full name is "aws-foobar-vpc"
+# The short name of your VPC, e.g. "foobar1" if the full name is "aws-foobar1-vpc"
 vpc_short_name = "example" #FIXME
 
 # Add VPC Peering Connection IDs here *after* the peering is created
