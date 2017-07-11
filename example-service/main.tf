@@ -33,9 +33,44 @@ variable "vpc_short_name" {
   description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
 }
 
+variable "ssh_cidr_blocks" {
+  description = "Optional IPv4 CIDR blocks from which to allow SSH"
+  type        = "list"
+  default     = []
+}
+
+variable "ssh_public_key" {
+  description = "Optional SSH public key material"
+  default     = ""
+}
+
+## Outputs
+
+output "private_ip" {
+  value = "${aws_instance.example.private_ip}"
+}
+
+output "public_ip" {
+  value = "${aws_instance.example.public_ip}"
+}
+
+## Provider
+
 provider "aws" {
   region              = "${var.region}"
   allowed_account_ids = ["${var.account_id}"]
+}
+
+# Get the latest Amazon Linux AMI matching the specified name pattern
+
+data "aws_ami" "ami" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn-ami-hvm-*-x86_64-gp2"]
+  }
 }
 
 # look up VPC by tag:Name
@@ -57,28 +92,60 @@ data "aws_subnet" "public1-a-net" {
   }
 }
 
-# launch an EC2 instance in the selected Subnet.  This serves no useful purpose
-# except to illustrate how we supply the value for subnet_id (the AMI does
-# nothing interesting on its own, and we have not provided ourselves with any
-# means to connect to it)
+# launch an EC2 instance in the selected Subnet
 
 resource "aws_instance" "example" {
-  ami           = "ami-71ca9114"
-  instance_type = "t2.nano"
-  subnet_id     = "${data.aws_subnet.public1-a-net.id}"
+  ami                    = "${data.aws_ami.ami.id}"
+  instance_type          = "t2.nano"
+  subnet_id              = "${data.aws_subnet.public1-a-net.id}"
+  vpc_security_group_ids = ["${aws_security_group.example.id}"]
+
+  # yields "" if we decline to create aws_key_pair.example
+  key_name = "${join("", aws_key_pair.example.*.key_name)}"
 
   tags {
-    Name = "useless-example-instance"
+    Name = "example-instance"
   }
 }
 
-# print out its IP addresses (including an auto-assigned public IP, since we
-# put it in a public-facing subnet) just for fun
+# SSH Key Pair
 
-output "private_ip" {
-  value = "${aws_instance.example.private_ip}"
+resource "aws_key_pair" "example" {
+  # only create this resource if ssh_public_key is specified
+  count = "${var.ssh_public_key == "" ? 0 : 1}"
+
+  key_name_prefix = "example-"
+  public_key      = "${var.ssh_public_key}"
 }
 
-output "public_ip" {
-  value = "${aws_instance.example.public_ip}"
+# Security Group
+
+resource "aws_security_group" "example" {
+  name_prefix = "example-"
+  vpc_id      = "${data.aws_vpc.vpc.id}"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "allow_outbound" {
+  security_group_id = "${aws_security_group.example.id}"
+  type              = "egress"
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "allow_ssh" {
+  # only create this rule if ssh_cidr_blocks is specified
+  count = "${length(var.ssh_cidr_blocks) > 0 ? 1 : 0}"
+
+  security_group_id = "${aws_security_group.example.id}"
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["${var.ssh_cidr_blocks}"]
 }
