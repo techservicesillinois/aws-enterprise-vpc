@@ -7,7 +7,7 @@
   notify: _reboot_system
 
 - name: rndc reconfig
-  command: rndc reconfig
+  command: /usr/sbin/rndc reconfig
   when: reboot_flag is undefined
 
 - name: restart named

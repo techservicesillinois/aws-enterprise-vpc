@@ -23,7 +23,7 @@
     dest: /etc/named.conf
     src: etc/named.conf.j2
     force: yes
-    validate: named-checkconf %s
+    validate: /usr/sbin/named-checkconf %s
   notify: rndc reconfig
 
 - name: named OPTIONS
@@ -74,14 +74,16 @@
 - name: "cron task: update zone list"
   cron:
     name: update zone list
-    job: "ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones > /dev/null"
+    # use an explicit login shell to avoid PATH surprises
+    job: "bash -lc 'ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones' > /dev/null"
     minute: "{{ zone_update.minute }}"
 
 # perform a full ansible-pull update (including upstream playbook changes) once per month
 - name: "cron task: ansible-pull"
   cron:
     name: ansible-pull
-    job: "ansible-pull --url={{ ansible_pull_url }} --checkout={{ ansible_pull_checkout }} --directory={{ ansible_pull_directory }} modules/rdns-forwarder/local.yml > /dev/null"
+    # use an explicit login shell to avoid PATH surprises
+    job: "bash -lc 'ansible-pull --url={{ ansible_pull_url }} --checkout={{ ansible_pull_checkout }} --directory={{ ansible_pull_directory }} modules/rdns-forwarder/local.yml' > /dev/null"
     day: "{{ full_update.day }}"
     hour: "{{ full_update.hour }}"
     minute: "{{ full_update.minute }}"

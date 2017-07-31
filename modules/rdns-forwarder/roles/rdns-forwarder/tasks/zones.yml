@@ -15,5 +15,5 @@
     dest: /var/named/zones.conf
     src: var/named/zones.conf.j2
     force: yes
-    validate: named-checkconf %s
+    validate: /usr/sbin/named-checkconf %s
   notify: rndc reconfig
