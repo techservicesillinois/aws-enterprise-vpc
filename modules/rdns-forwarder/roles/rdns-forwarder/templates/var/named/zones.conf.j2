@@ -1,10 +1,10 @@
 {# Copyright (c) 2017 Board of Trustees University of Illinois -#}
 
 {# produces e.g.
-zone "illinois.edu" { type forward; forwarders { 10.224.1.50; 10.224.1.100; }; };
-zone "uillinois.edu" { type forward; forwarders { 10.224.1.50; 10.224.1.100; }; };
+zone "illinois.edu" { type forward; forward first; forwarders { 10.224.1.50; 10.224.1.100; }; };
+zone "uillinois.edu" { type forward; forward first; forwarders { 10.224.1.50; 10.224.1.100; }; };
 -#}
 
 {% for zone in zone_list.stdout_lines %}
-zone "{{ zone }}" { type forward; forwarders { {% for ip in forwarders -%} {{ ip }}; {% endfor -%} }; };
+zone "{{ zone }}" { type forward; forward first; forwarders { {% for ip in forwarders -%} {{ ip }}; {% endfor -%} }; };
 {% endfor %}
