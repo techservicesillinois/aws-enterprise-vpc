@@ -3,12 +3,17 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.9.1"
+  required_version = "~> 0.11"
+
+  ## future (https://github.com/hashicorp/terraform/issues/16835)
+  #required_providers {
+  #  aws    = "~> 1.7"
+  #}
 
   backend "s3" {
-    region     = "us-east-2"
-    lock_table = "terraform"
-    encrypt    = "true"
+    region         = "us-east-2"
+    dynamodb_table = "terraform"
+    encrypt        = "true"
 
     # must be unique to your AWS account; try replacing
     # uiuc-tech-services-sandbox with the friendly name of your account
@@ -46,6 +51,9 @@ provider "aws" {
 
   # avoid accidentally modifying the wrong AWS account
   allowed_account_ids = ["${var.account_id}"]
+
+  # until https://github.com/hashicorp/terraform/issues/16835
+  version = "~> 1.7"
 }
 
 # for vpn-monitor

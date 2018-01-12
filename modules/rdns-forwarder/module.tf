@@ -3,7 +3,12 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.9.3"
+  required_version = ">= 0.11"
+
+  ## future (https://github.com/hashicorp/terraform/issues/16835)
+  #required_providers {
+  #  aws    = ">= 1.7"
+  #}
 }
 
 ## Inputs
@@ -53,7 +58,7 @@ variable "full_update_minute" {
 }
 
 variable "tags" {
-  description = "Optional tags to be set on the EC2 instance"
+  description = "Optional tags to be set on all resources"
   type        = "map"
   default     = {}
 }
@@ -133,6 +138,7 @@ data "template_file" "user_data" {
 
 resource "aws_instance" "forwarder" {
   tags                        = "${var.tags}"
+  volume_tags                 = "${var.tags}"
   ami                         = "${data.aws_ami.ami.id}"
   instance_type               = "${var.instance_type}"
   subnet_id                   = "${var.subnet_id}"
@@ -155,6 +161,7 @@ resource "aws_instance" "forwarder" {
 # Security Group
 
 resource "aws_security_group" "rdns" {
+  tags        = "${var.tags}"
   name_prefix = "rdns-"
   vpc_id      = "${data.aws_vpc.selected.id}"
 
