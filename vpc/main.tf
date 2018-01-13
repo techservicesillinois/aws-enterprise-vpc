@@ -75,10 +75,15 @@ output "vpc.cidr_block" {
   value = "${aws_vpc.vpc.cidr_block}"
 }
 
+output "vpc.region" {
+  value = "${var.region}"
+}
+
 # note: additional outputs are specified in the VPN section below
 
-## Provider
+## Providers
 
+# default provider for chosen region
 provider "aws" {
   region = "${var.region}"
 
@@ -89,7 +94,7 @@ provider "aws" {
   version = "~> 1.7"
 }
 
-# for alarms in vpn-connection
+# explicit provider for us-east-1 (VPN connection monitoring)
 provider "aws" {
   alias  = "us-east-1"
   region = "us-east-1"
@@ -177,14 +182,17 @@ module "vpn1" {
 
   name                = "${var.vpc_short_name}-vpn1"
   vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
-  customer_gateway_id = "${data.terraform_remote_state.global.customer_gateway_ids["vpnhub-aws1-pub"]}"
+  customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws1-pub")}"
   create_alarm        = true
 
-  #alarm_provider = "aws.us-east-1"
   #alarm_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   #insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   #ok_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
+
+  providers {
+    "aws.vpn_monitor" = "aws.us-east-1"
+  }
 }
 
 output "vpn1.customer_gateway_configuration" {
@@ -197,14 +205,17 @@ module "vpn2" {
 
   name                = "${var.vpc_short_name}-vpn2"
   vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
-  customer_gateway_id = "${data.terraform_remote_state.global.customer_gateway_ids["vpnhub-aws2-pub"]}"
+  customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws2-pub")}"
   create_alarm        = true
 
-  #alarm_provider = "aws.us-east-1"
   #alarm_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   #insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   #ok_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
   vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
+
+  providers {
+    "aws.vpn_monitor" = "aws.us-east-1"
+  }
 }
 
 output "vpn2.customer_gateway_configuration" {

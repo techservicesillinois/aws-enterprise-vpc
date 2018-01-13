@@ -1,4 +1,4 @@
-# Resources created once for the whole AWS account
+# Singleton resources created once for the whole AWS account
 #
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
@@ -26,10 +26,6 @@ terraform {
 
 ## Inputs (specified in terraform.tfvars)
 
-variable "region" {
-  description = "AWS region for this VPC, e.g. us-east-2"
-}
-
 variable "account_id" {
   description = "Your 12-digit AWS account number"
 }
@@ -37,17 +33,21 @@ variable "account_id" {
 ## Outputs
 
 output "customer_gateway_ids" {
-  value = "${module.cgw.customer_gateway_ids}"
+  value = {
+    us-east-1 = "${module.cgw_us-east-1.customer_gateway_ids}"
+    us-east-2 = "${module.cgw_us-east-2.customer_gateway_ids}"
+  }
 }
 
 output "vpn_monitor_arn" {
   value = "${aws_sns_topic.vpn-monitor.arn}"
 }
 
-## Provider
+## Providers
 
 provider "aws" {
-  region = "${var.region}"
+  alias  = "us-east-1"
+  region = "us-east-1"
 
   # avoid accidentally modifying the wrong AWS account
   allowed_account_ids = ["${var.account_id}"]
@@ -56,30 +56,40 @@ provider "aws" {
   version = "~> 1.7"
 }
 
-# for vpn-monitor
 provider "aws" {
-  alias  = "us-east-1"
-  region = "us-east-1"
+  alias  = "us-east-2"
+  region = "us-east-2"
 
   # avoid accidentally modifying the wrong AWS account
   allowed_account_ids = ["${var.account_id}"]
+
+  # until https://github.com/hashicorp/terraform/issues/16835
+  version = "~> 1.7"
 }
 
-# Customer Gateways
+## Resources
 
-module "cgw" {
+# Customer Gateways (per region, add more regions if needed)
+
+module "cgw_us-east-1" {
   source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.7"
+
+  providers = {
+    aws = "aws.us-east-1"
+  }
 }
 
-# Optional CloudWatch monitoring for VPN connections (in all regions): see
-# https://aws.amazon.com/answers/networking/vpn-monitor/
-#
-# Always deploy this in us-east-1 to work around non-existence of S3 bucket
-# solutions-builder-us-east-2.s3.amazonaws.com; see
-# https://github.com/awslabs/aws-vpn-monitor/issues/1
-#
-# note: modules/vpn-connection contains a corresponding hard-coded provider
-# field for creating CloudWatch alarms!
+module "cgw_us-east-2" {
+  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.7"
+
+  providers = {
+    aws = "aws.us-east-2"
+  }
+}
+
+# Optional CloudWatch monitoring for VPN connections (deployed in one region
+# but monitors VPN connections in all regions): see
+# https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
 resource "aws_cloudformation_stack" "vpn-monitor" {
   provider = "aws.us-east-1"
   name     = "vpn-monitor"

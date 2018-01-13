@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
-# AWS region (must be us-east-2 for an Enterprise VPC)
+# AWS region for this VPC, e.g. us-east-2
 region = "us-east-2"
 
 # Your 12-digit AWS account number

@@ -1,4 +1,4 @@
-# AWS Enterprise VPC Example
+﻿# AWS Enterprise VPC Example
 
 This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC, as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
@@ -75,7 +75,7 @@ You will need:
 
 You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  Note in particular that quite a few components can be omitted if you don't need any campus-facing subnets.
 
-If you leave everything else unchanged, the result will be an Enterprise VPC with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
+If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
@@ -111,7 +111,7 @@ To set up a new workstation:
 
 1. Set `AWS_PROFILE` if needed (see above).
 
-2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account.
+2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account rather than to a single VPC.
 
        cd global
        terraform init
@@ -119,7 +119,7 @@ To set up a new workstation:
        terraform apply
        cd ..
 
-   * As an optional feature, the example global environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://aws.amazon.com/answers/networking/vpn-monitor/) and creates a [Simple Notification Service](https://aws.amazon.com/sns/) topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
+   * As an optional feature, the example global environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://docs.aws.amazon.com/solutions/latest/vpn-monitor/overview.html) and creates a [Simple Notification Service](https://aws.amazon.com/sns/) topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
 
      If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
 
@@ -128,14 +128,14 @@ To set up a new workstation:
 
      (then check your email and follow the confirmation instructions)
 
-3. Deploy the `vpc` environment:
+3. Next, deploy the `vpc` environment to create your VPC:
 
        cd vpc
        terraform init
        terraform plan
        terraform apply
 
-   and generate the detailed output file needed for the next step:
+   and generate the detailed output file needed for the following step:
 
        terraform output > details.txt
 
@@ -143,13 +143,13 @@ To set up a new workstation:
 
    * Do you need a Core Services VPC peering, VPN connections, or both?
 
-   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, ID, and CIDR block, and some additional configuration details (in XML format) for the on-campus side of each VPN connection.
+   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, region, ID, and CIDR block, and some additional configuration details (in XML format) for the on-campus side of each VPN connection.
 
 5. If you requested a Core Services VPC peering connection, Technology Services will initiate one and provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
 
        pcx_ids = ["pcx-abcd1234"]
 
-   and deploy the `vpc` environment again; this will automatically accept the peering connection and add a corresponding route to each of your route tables (nothing else should change).
+   and deploy the `vpc` environment again.  This will automatically accept the peering connection and add a corresponding route to each of your route tables (nothing else should change).
 
        cd vpc
        terraform plan
@@ -179,7 +179,7 @@ If you like, you can now deploy the `example-service` environment to launch an E
     terraform apply
     cd ..
 
-If you do deploy this environment, be sure to `terraform destroy` it afterward (since it doesn't do anything useful).
+When you're done testing the example-service environment, be sure to clean it up with `terraform destroy`.
 
 Notice that the `example-service` code does _not_ directly depend on any of the shared networking code or the remote state it produces; it merely requires that the AWS account contains a VPC with a certain tag:Name, and that this VPC contains a Subnet with a certain tag:Name.
 
@@ -190,7 +190,7 @@ Notice that the `example-service` code does _not_ directly depend on any of the 
 
 After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (as illustrated by `example-service/`).  In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
 
-  * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if for some reason the entire VPC must be rebuilt.
+  * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if for some reason the entire VPC has to be rebuilt.
 
   * Multiple IaC environments for the same AWS account can all use the same S3 bucket and DynamoDB table for Terraform state, **provided that each environment's backend configuration stanza specifies a different `key` value**.
 
@@ -201,17 +201,30 @@ After your VPC is deployed, the next logical step is to write additional infrast
 
     where 'Shared Networking' is meant to uniquely identify this IaC _repository_, and 'global' or 'vpc' the environment directory within this repository.
 
+    Note that the key for `example-service` does _not_ begin with 'Shared Networking' because it's a separate piece of IaC which would normally reside in its own repository.
+
 
 ### Multiple VPCs
 
-If you need to create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `vpc2/` and modify the necessary values in the new files.
+To create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `other-vpc/` and modify the necessary values in the new files.
 
-**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `vpc2/main.tf`
+**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/main.tf` before running any Terraform commands!
 
     .
     ├── global/
     ├── vpc/
-    └── vpc2/
+    └── other-vpc/
+
+You may find it convenient to name the environment directories after the VPCs themselves (e.g. "foobar1-vpc").
+
+
+#### Multiple Regions
+
+To create your new VPC in a different region, simply edit the `region` variable value in e.g. `other-vpc/terraform.tfvars`.
+
+* This does _not_ require modifying the hardcoded region names in `other-vpc/main.tf` (or the prerequisite steps of this document); those singleton items are independent of which region the VPC itself is deployed into.
+
+* You _may_ need to add more per-region singleton resources in `global/main.tf` (following the established pattern)
 
 
 ### Multiple AWS accounts

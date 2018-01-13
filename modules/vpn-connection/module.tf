@@ -3,7 +3,12 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.8.7"
+  required_version = ">= 0.11"
+
+  ## future (https://github.com/hashicorp/terraform/issues/16835)
+  #required_providers {
+  #  aws    = ">= 1.7"
+  #}
 }
 
 ## Inputs
@@ -24,16 +29,6 @@ variable "create_alarm" {
   description = "Set true to create a CloudWatch Metric Alarm"
   default     = false
 }
-
-# Alarm must exist in same region as Metric, i.e. same region as global Lambda
-#
-# Unfortunately passing this in as a variable isn't currently supported (see
-# https://github.com/hashicorp/terraform/issues/11578) so we have to hard-code
-# it instead.
-#variable "alarm_provider" {
-#    description = "Optional provider (TYPE.ALIAS) for Alarm, e.g. aws.us-east-1"
-#    default = "aws"
-#}
 
 # Unfortunately these generic list variables do not currently work
 # (see https://github.com/hashicorp/terraform/issues/11453)
@@ -56,6 +51,11 @@ variable "create_alarm" {
 variable "vpn_monitor_arn" {
   description = "SNS Topic for alarm to notify, e.g. arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic"
   default     = ""
+}
+
+# Alarm must exist in same region as Metric, i.e. same region as global Lambda
+provider "aws" {
+  alias = "vpn_monitor"
 }
 
 ## Outputs
@@ -96,11 +96,10 @@ resource "aws_vpn_connection" "vpn" {
 }
 
 # Optional CloudWatch Alarm based on Metric populated by
-# https://aws.amazon.com/answers/networking/vpn-monitor/
+# https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
 
 resource "aws_cloudwatch_metric_alarm" "vpnstatus" {
-  #provider = "${var.alarm_provider}"
-  provider          = "aws.us-east-1"
+  provider          = "aws.vpn_monitor"
   count             = "${var.create_alarm ? 1 : 0}"
   alarm_name        = "${aws_vpn_connection.vpn.id} | ${var.name}"
   alarm_description = "verify that both tunnels are UP"
