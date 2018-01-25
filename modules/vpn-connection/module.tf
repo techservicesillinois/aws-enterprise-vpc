@@ -33,7 +33,7 @@ variable "create_alarm" {
 # Unfortunately these generic list variables do not currently work
 # (see https://github.com/hashicorp/terraform/issues/11453)
 #variable "alarm_actions" {
-#    description = "Optional list of actions (ARNs) to execute when the alarm transitions into an ALARM state from any other state, e.g. [arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic]"
+#    description = "Optional list of actions (ARNs) to execute when the alarm transitions into an ALARM state from any other state, e.g. [arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic]"
 #    type = "list"
 #    default = []
 #}
@@ -49,7 +49,7 @@ variable "create_alarm" {
 #}
 # so for now we accept a single ARN and add it to all three lists
 variable "vpn_monitor_arn" {
-  description = "SNS Topic for alarm to notify, e.g. arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic"
+  description = "SNS Topic for alarm to notify, e.g. arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic"
   default     = ""
 }
 

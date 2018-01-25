@@ -94,10 +94,10 @@ provider "aws" {
   version = "~> 1.7"
 }
 
-# explicit provider for us-east-1 (VPN connection monitoring)
+# explicit provider for us-east-2 (VPN connection monitoring)
 provider "aws" {
-  alias  = "us-east-1"
-  region = "us-east-1"
+  alias  = "us-east-2"
+  region = "us-east-2"
 
   # avoid accidentally modifying the wrong AWS account
   allowed_account_ids = ["${var.account_id}"]
@@ -191,7 +191,7 @@ module "vpn1" {
   vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
 
   providers {
-    "aws.vpn_monitor" = "aws.us-east-1"
+    "aws.vpn_monitor" = "aws.us-east-2"
   }
 }
 
@@ -214,7 +214,7 @@ module "vpn2" {
   vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
 
   providers {
-    "aws.vpn_monitor" = "aws.us-east-1"
+    "aws.vpn_monitor" = "aws.us-east-2"
   }
 }
 

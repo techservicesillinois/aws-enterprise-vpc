@@ -91,7 +91,7 @@ module "cgw_us-east-2" {
 # but monitors VPN connections in all regions): see
 # https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
 resource "aws_cloudformation_stack" "vpn-monitor" {
-  provider = "aws.us-east-1"
+  provider = "aws.us-east-2"
   name     = "vpn-monitor"
 
   parameters {
@@ -109,6 +109,6 @@ resource "aws_cloudformation_stack" "vpn-monitor" {
 # https://www.terraform.io/docs/providers/aws/r/sns_topic_subscription.html
 
 resource "aws_sns_topic" "vpn-monitor" {
-  provider = "aws.us-east-1"
+  provider = "aws.us-east-2"
   name     = "vpn-monitor-topic"
 }

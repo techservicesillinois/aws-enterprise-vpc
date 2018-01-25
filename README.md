@@ -123,7 +123,7 @@ To set up a new workstation:
 
      If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
 
-         aws sns subscribe --region us-east-1 --topic-arn arn:aws:sns:us-east-1:999999999999:vpn-monitor-topic \
+         aws sns subscribe --region us-east-2 --topic-arn arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic \
           --protocol email --notification-endpoint my-email@example.com
 
      (then check your email and follow the confirmation instructions)
