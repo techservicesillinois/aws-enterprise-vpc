@@ -1,4 +1,4 @@
-# AWS Recursive DNS Forwarder
+﻿# AWS Recursive DNS Forwarder
 
 This directory provides both a Terraform module and an ansible-pull playbook to launch and configure an EC2 instance which will serve as a [**Recursive DNS Forwarder**](https://answers.uillinois.edu/illinois/page.php?id=74081) for your [Enterprise VPC](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
@@ -42,7 +42,7 @@ System logs are published in [CloudWatch Logs](http://docs.aws.amazon.com/Amazon
 
 ## How to Deploy
 
-The AWS Enterprise VPC Example environment code includes a working example of how to deploy RDNS Forwarders.  This section explains the module usage in greater detail.
+The AWS Enterprise VPC Example environment code includes a working example of how to deploy RDNS Forwarders in `rdns.tf`.  This section explains the module usage in greater detail.
 
 0. Make sure that:
    * your Enterprise VPC has a VPC peering connection to a Core Services VPC
@@ -52,29 +52,29 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      ```hcl
      module "rdns-a" {
-         source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
-         tags = {
-             Name = "rdns-a"
-         }
-         instance_type = "t2.micro"
-         core_services_resolvers = [ "10.224.1.50", "10.224.1.100" ] #FIXME
-         subnet_id = "${module.public1-a-net.id}"
-         private_ip = "192.168.0.5" #FIXME
-         zone_update_minute = "5"
-         full_update_day_of_month = "1"
+       source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
+       tags = {
+         Name = "${var.vpc_short_name}-rdns-a"
+       }
+       instance_type            = "t2.micro"
+       core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
+       subnet_id                = "${module.public1-a-net.id}"
+       private_ip               = "192.168.0.5" #FIXME
+       zone_update_minute       = "5"
+       full_update_day_of_month = "1"
      }
 
      module "rdns-b" {
-         source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
-         tags = {
-             Name = "rdns-b"
-         }
-         instance_type = "t2.micro"
-         core_services_resolvers = [ "10.224.1.50", "10.224.1.100" ] #FIXME
-         subnet_id = "${module.public1-b-net.id}"
-         private_ip = "192.168.1.5" #FIXME
-         zone_update_minute = "35"
-         full_update_day_of_month = "15"
+       source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
+       tags = {
+           Name = "${var.vpc_short_name}-rdns-b"
+       }
+       instance_type            = "t2.micro"
+       core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
+       subnet_id                = "${module.public1-b-net.id}"
+       private_ip               = "192.168.1.5" #FIXME
+       zone_update_minute       = "35"
+       full_update_day_of_month = "15"
      }
      ```
 
@@ -90,16 +90,16 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      ```hcl
      resource "aws_vpc_dhcp_options" "dhcp_options" {
-         tags {
-             Name = "${var.vpc_short_name}-dhcp"
-         }
-         domain_name_servers = ["${module.rdns-a.private_ip}", "${module.rdns-b.private_ip}"]
-         domain_name = "${var.region}.compute.internal"
+       tags {
+         Name = "${var.vpc_short_name}-dhcp"
+       }
+       domain_name_servers = ["${module.rdns-a.private_ip}", "${module.rdns-b.private_ip}"]
+       domain_name         = "${var.region}.compute.internal"
      }
 
      resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
-         vpc_id = "${aws_vpc.vpc.id}"
-         dhcp_options_id = "${aws_vpc_dhcp_options.dhcp_options.id}"
+       vpc_id          = "${aws_vpc.vpc.id}"
+       dhcp_options_id = "${aws_vpc_dhcp_options.dhcp_options.id}"
      }
      ```
 
