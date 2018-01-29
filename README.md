@@ -242,6 +242,29 @@ If you wish to keep IaC for several different AWS accounts in the same repositor
 Note that each AWS account will need to use a different S3 bucket for Terraform state.
 
 
+### Destroying VPCs
+
+In order for Terraform to successfully destroy a VPC, all other resources that depend on that VPC must be removed first.  Unfortunately, the error message returned by the [AWS API method](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteVpc.html) and printed by Terraform does not provide any indication of _which_ resources are the obstacle:
+
+    aws_vpc.vpc: DependencyViolation: The vpc 'vpc-abcd1234' has dependencies and cannot be deleted.
+	  status code: 400, request id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+If you find yourself in this situation, here is a set of AWS CLI commands (using bash-style variable substitution syntax) which may help you identify resources which are still associated with the VPC:
+
+    export VPC_ID=vpc-abcd1234
+    export VPC_REGION=us-east-2
+    aws ec2 describe-subnets --region $VPC_REGION --filters Name=vpc-id,Values=$VPC_ID
+    aws ec2 describe-security-groups --region $VPC_REGION --filters Name=vpc-id,Values=$VPC_ID --query 'SecurityGroups[?GroupName!=`default`]'
+    aws ec2 describe-internet-gateways --region $VPC_REGION --filters Name=attachment.vpc-id,Values=$VPC_ID
+    aws ec2 describe-vpn-gateways --region $VPC_REGION --filters Name=attachment.vpc-id,Values=$VPC_ID --query 'VpnGateways[?State!=`deleted`]'
+    aws ec2 describe-nat-gateways --region $VPC_REGION --filter Name=vpc-id,Values=$VPC_ID --query 'NatGateways[?State!=`deleted`]'
+    aws ec2 describe-vpc-endpoints --region $VPC_REGION --filters Name=vpc-id,Values=$VPC_ID
+    aws ec2 describe-vpc-peering-connections --region $VPC_REGION --filters Name=accepter-vpc-info.vpc-id,Values=$VPC_ID
+    aws ec2 describe-vpc-peering-connections --region $VPC_REGION --filters Name=requester-vpc-info.vpc-id,Values=$VPC_ID
+    aws ec2 describe-route-tables --region $VPC_REGION --filters Name=vpc-id,Values=$VPC_ID --query 'RouteTables[?Associations[?Main==`false`]]'
+    aws ec2 describe-network-interfaces --region $VPC_REGION --filters Name=vpc-id,Values=$VPC_ID
+
+
 
 ## Versioning
 -------------
