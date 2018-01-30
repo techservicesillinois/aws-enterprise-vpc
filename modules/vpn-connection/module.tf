@@ -40,27 +40,22 @@ variable "alarm_requires_both_tunnels" {
   default     = false
 }
 
-# Unfortunately these generic list variables do not currently work
-# (see https://github.com/hashicorp/terraform/issues/11453)
-#variable "alarm_actions" {
-#    description = "Optional list of actions (ARNs) to execute when the alarm transitions into an ALARM state from any other state, e.g. [arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic]"
-#    type = "list"
-#    default = []
-#}
-#variable "insufficient_data_actions" {
-#    description = "Optional list of actions (ARNs) to execute when the alarm transitions into an INSUFFICIENT_DATA state from any other state."
-#    type = "list"
-#    default = []
-#}
-#variable "ok_actions" {
-#    description = "Optional list of actions (ARNs) to execute when the alarm transitions into an OK state from any other state."
-#    type = "list"
-#    default = []
-#}
-# so for now we accept a single ARN and add it to all three lists
-variable "vpn_monitor_arn" {
-  description = "SNS Topic for alarm to notify, e.g. arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic"
-  default     = ""
+variable "alarm_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an ALARM state from any other state, e.g. [arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic]"
+  type        = "list"
+  default     = []
+}
+
+variable "insufficient_data_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an INSUFFICIENT_DATA state from any other state."
+  type        = "list"
+  default     = []
+}
+
+variable "ok_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an OK state from any other state."
+  type        = "list"
+  default     = []
 }
 
 # Alarm must exist in same region as Metric, i.e. same region as global Lambda
@@ -136,11 +131,8 @@ resource "aws_cloudwatch_metric_alarm" "vpnstatus" {
   period              = "300"
   evaluation_periods  = "2"
 
-  #alarm_actions = "${var.alarm_actions}"
-  #insufficient_data_actions = "${var.insufficient_data_actions}"
-  #ok_actions = "${var.ok_actions}"
-
-  alarm_actions             = ["${var.vpn_monitor_arn}"]
-  insufficient_data_actions = ["${var.vpn_monitor_arn}"]
-  ok_actions                = ["${var.vpn_monitor_arn}"]
+  # note workaround for https://github.com/hashicorp/terraform/issues/11453
+  alarm_actions             = ["${var.alarm_actions}"]
+  insufficient_data_actions = ["${var.insufficient_data_actions}"]
+  ok_actions                = ["${var.ok_actions}"]
 }

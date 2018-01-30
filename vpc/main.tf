@@ -185,10 +185,9 @@ module "vpn1" {
   customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws1-pub")}"
   create_alarm        = true
 
-  #alarm_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  #insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  #ok_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
+  alarm_actions             = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  ok_actions                = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
 
   providers {
     "aws.vpn_monitor" = "aws.us-east-2"
@@ -208,10 +207,9 @@ module "vpn2" {
   customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws2-pub")}"
   create_alarm        = true
 
-  #alarm_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  #insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  #ok_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  vpn_monitor_arn = "${data.terraform_remote_state.global.vpn_monitor_arn}"
+  alarm_actions             = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  ok_actions                = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
 
   providers {
     "aws.vpn_monitor" = "aws.us-east-2"
