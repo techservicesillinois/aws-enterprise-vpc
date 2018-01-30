@@ -3,7 +3,8 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = "~> 0.11"
+  # constrain minor version until 1.0 is released
+  required_version = "~> 0.11.2"
 
   ## future (https://github.com/hashicorp/terraform/issues/16835)
   #required_providers {
