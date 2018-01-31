@@ -76,7 +76,7 @@ variable "ansible_pull_url" {
 }
 
 variable "ansible_pull_checkout" {
-  default = "v0.7"
+  default = "v0.8"
 }
 
 ## Outputs
