@@ -43,7 +43,7 @@ resource "null_resource" "dummy_depends_on" {
 
 variable "endpoint_ids" {
   type        = "list"
-  description = "Optional list of VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
+  description = "Optional list of Gateway VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
   default     = []
 }
 

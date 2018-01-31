@@ -171,9 +171,9 @@ resource "aws_vpc_endpoint" "private-dynamodb" {
 }
 
 locals {
-  endpoint_count = 2
+  gateway_vpc_endpoint_count = 2
 
-  endpoint_ids = [
+  gateway_vpc_endpoint_ids = [
     "${aws_vpc_endpoint.private-s3.id}",
     "${aws_vpc_endpoint.private-dynamodb.id}",
   ]
@@ -287,8 +287,8 @@ module "public1-a-net" {
   availability_zone   = "${var.region}a"
   pcx_ids             = "${var.pcx_ids}"
   dummy_depends_on    = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids        = ["${local.endpoint_ids}"]
-  endpoint_count      = "${local.endpoint_count}"
+  endpoint_ids        = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count      = "${local.gateway_vpc_endpoint_count}"
   internet_gateway_id = "${aws_internet_gateway.igw.id}"
 }
 
@@ -301,8 +301,8 @@ module "public1-b-net" {
   availability_zone   = "${var.region}b"
   pcx_ids             = "${var.pcx_ids}"
   dummy_depends_on    = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids        = ["${local.endpoint_ids}"]
-  endpoint_count      = "${local.endpoint_count}"
+  endpoint_ids        = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count      = "${local.gateway_vpc_endpoint_count}"
   internet_gateway_id = "${aws_internet_gateway.igw.id}"
 }
 
@@ -315,8 +315,8 @@ module "campus1-a-net" {
   availability_zone = "${var.region}a"
   pcx_ids           = "${var.pcx_ids}"
   dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.endpoint_ids}"]
-  endpoint_count    = "${local.endpoint_count}"
+  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
   vpn_gateway_id    = "${aws_vpn_gateway.vgw.id}"
   nat_gateway_id    = "${module.nat-a.id}"
 }
@@ -330,8 +330,8 @@ module "campus1-b-net" {
   availability_zone = "${var.region}b"
   pcx_ids           = "${var.pcx_ids}"
   dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.endpoint_ids}"]
-  endpoint_count    = "${local.endpoint_count}"
+  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
   vpn_gateway_id    = "${aws_vpn_gateway.vgw.id}"
   nat_gateway_id    = "${module.nat-b.id}"
 }
@@ -345,8 +345,8 @@ module "private1-a-net" {
   availability_zone = "${var.region}a"
   pcx_ids           = "${var.pcx_ids}"
   dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.endpoint_ids}"]
-  endpoint_count    = "${local.endpoint_count}"
+  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
   nat_gateway_id    = "${module.nat-a.id}"
 }
 
@@ -359,7 +359,7 @@ module "private1-b-net" {
   availability_zone = "${var.region}b"
   pcx_ids           = "${var.pcx_ids}"
   dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.endpoint_ids}"]
-  endpoint_count    = "${local.endpoint_count}"
+  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
+  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
   nat_gateway_id    = "${module.nat-b.id}"
 }

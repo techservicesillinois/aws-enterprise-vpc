@@ -110,7 +110,7 @@ resource "aws_route" "pcx" {
   vpc_peering_connection_id = "${data.aws_vpc_peering_connection.pcx.*.id[count.index]}"
 }
 
-# routes for VPC Endpoints (if any)
+# routes for Gateway VPC Endpoints (if any)
 
 resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
   #count = "${length(var.endpoint_ids)}"
