@@ -284,6 +284,9 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
     t = "${join("",aws_vpc_peering_connection_accepter.pcx.*.id)}"
   }
 
+  # You may safely comment out this provisioner block if your workstation does
+  # not have a sleep command; it just increases the likelihood that you will
+  # encounter a transient AWS API error and have to re-run `terraform apply`.
   provisioner "local-exec" {
     command = "sleep 3"
   }
