@@ -57,6 +57,24 @@ variable "internet_gateway_id" {
   description = "Internet Gateway to use for default route, e.g. igw-abcd1234"
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_subnet" {
+  description = "Optional custom tags for aws_subnet resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_route_table" {
+  description = "Optional custom tags for aws_route_table resource"
+  type        = "map"
+  default     = {}
+}
+
 ## Outputs
 
 output "id" {
@@ -87,12 +105,15 @@ module "subnet" {
   endpoint_count          = "${var.endpoint_count}"
   map_public_ip_on_launch = true
   rtb_id                  = "${aws_route_table.rtb.id}"
+  tags                    = "${var.tags}"
+  tags_subnet             = "${var.tags_subnet}"
+  tags_route_table        = "${var.tags_route_table}"
 }
 
 resource "aws_route_table" "rtb" {
-  tags {
-    Name = "${var.name}-rtb"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", "${var.name}-rtb",
+  ), var.tags_route_table)}"
 
   vpc_id = "${var.vpc_id}"
 }
@@ -100,6 +121,7 @@ resource "aws_route_table" "rtb" {
 # default route
 
 resource "aws_route" "default" {
+  # note: tags not supported
   route_table_id         = "${module.subnet.route_table_id}"
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = "${var.internet_gateway_id}"

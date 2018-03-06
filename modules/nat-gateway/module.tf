@@ -18,7 +18,19 @@ variable "public_subnet_id" {
 }
 
 variable "tags" {
-  description = "Optional tags to be set on all resources"
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_eip" {
+  description = "Optional custom tags for aws_eip resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_nat_gateway" {
+  description = "Optional custom tags for aws_nat_gateway resource"
   type        = "map"
   default     = {}
 }
@@ -34,14 +46,14 @@ output "id" {
 # Elastic IP for NAT Gateway
 
 resource "aws_eip" "nat_eip" {
-  tags = "${var.tags}"
+  tags = "${merge(var.tags, var.tags_eip)}"
   vpc  = true
 }
 
 # NAT Gateway
 
 resource "aws_nat_gateway" "nat" {
-  tags          = "${var.tags}"
+  tags          = "${merge(var.tags, var.tags_nat_gateway)}"
   allocation_id = "${aws_eip.nat_eip.id}"
   subnet_id     = "${var.public_subnet_id}"
 }

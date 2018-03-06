@@ -7,6 +7,12 @@ terraform {
   required_version = ">= 0.9.1"
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
 output "customer_gateway_ids" {
   value = {
     vpnhub-aws1-pub = "${aws_customer_gateway.vpnhub-aws1-pub.id}"
@@ -15,9 +21,9 @@ output "customer_gateway_ids" {
 }
 
 resource "aws_customer_gateway" "vpnhub-aws1-pub" {
-  tags {
-    Name = "vpnhub-aws1-pub"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", "vpnhub-aws1-pub",
+  ))}"
 
   ip_address = "128.174.0.21"
   bgp_asn    = 65044
@@ -25,9 +31,9 @@ resource "aws_customer_gateway" "vpnhub-aws1-pub" {
 }
 
 resource "aws_customer_gateway" "vpnhub-aws2-pub" {
-  tags {
-    Name = "vpnhub-aws2-pub"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", "vpnhub-aws2-pub",
+  ))}"
 
   ip_address = "128.174.0.22"
   bgp_asn    = 65044

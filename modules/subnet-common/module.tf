@@ -36,6 +36,24 @@ variable "dummy_depends_on" {
   default = ""
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_subnet" {
+  description = "Optional custom tags for aws_subnet resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_route_table" {
+  description = "Optional custom tags for aws_route_table resource"
+  type        = "map"
+  default     = {}
+}
+
 #resource "null_resource" "dummy_depends_on" { triggers { t = "${var.dummy_depends_on}" }}
 
 ## Outputs
@@ -60,9 +78,9 @@ data "aws_vpc" "vpc" {
 # create Subnet and associated Route Table
 
 resource "aws_subnet" "subnet" {
-  tags {
-    Name = "${var.name}"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", var.name,
+  ), var.tags_subnet)}"
 
   availability_zone       = "${var.availability_zone}"
   cidr_block              = "${var.cidr_block}"
@@ -71,14 +89,16 @@ resource "aws_subnet" "subnet" {
 }
 
 #resource "aws_route_table" "rtb" {
-#    tags {
-#        Name = "${var.name}-rtb"
-#    }
-#    vpc_id = "${var.vpc_id}"
-#    propagating_vgws = "${var.propagating_vgws}"
+#  tags = "${merge(var.tags, map(
+#    "Name", "${var.name}-rtb",
+#  ), var.tags_route_table)}"
+#
+#  vpc_id = "${var.vpc_id}"
+#  propagating_vgws = "${var.propagating_vgws}"
 #}
 
 resource "aws_route_table_association" "rtb_assoc" {
+  # note: tags not supported
   subnet_id = "${aws_subnet.subnet.id}"
 
   #route_table_id = "${aws_route_table.rtb.id}"
@@ -100,6 +120,7 @@ data "aws_vpc_peering_connection" "pcx" {
 }
 
 resource "aws_route" "pcx" {
+  # note: tags not supported
   count = "${length(var.pcx_ids)}"
 
   #route_table_id = "${aws_route_table.rtb.id}"
@@ -113,8 +134,10 @@ resource "aws_route" "pcx" {
 # routes for Gateway VPC Endpoints (if any)
 
 resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
+  # note: tags not supported
   #count = "${length(var.endpoint_ids)}"
-  count           = "${var.endpoint_count}"
+  count = "${var.endpoint_count}"
+
   vpc_endpoint_id = "${var.endpoint_ids[count.index]}"
 
   #route_table_id = "${aws_route_table.rtb.id}"

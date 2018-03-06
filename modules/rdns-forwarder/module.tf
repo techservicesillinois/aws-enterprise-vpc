@@ -58,7 +58,25 @@ variable "full_update_minute" {
 }
 
 variable "tags" {
-  description = "Optional tags to be set on all resources"
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_instance" {
+  description = "Optional custom tags for aws_instance resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_volume" {
+  description = "Optional custom volume_tags for aws_instance resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_security_group" {
+  description = "Optional custom tags for aws_security_group resource"
   type        = "map"
   default     = {}
 }
@@ -137,8 +155,8 @@ data "template_file" "user_data" {
 # EC2 instance
 
 resource "aws_instance" "forwarder" {
-  tags                        = "${var.tags}"
-  volume_tags                 = "${var.tags}"
+  tags                        = "${merge(var.tags, var.tags_instance)}"
+  volume_tags                 = "${merge(var.tags, var.tags_volume)}"
   ami                         = "${data.aws_ami.ami.id}"
   instance_type               = "${var.instance_type}"
   subnet_id                   = "${var.subnet_id}"
@@ -161,7 +179,7 @@ resource "aws_instance" "forwarder" {
 # Security Group
 
 resource "aws_security_group" "rdns" {
-  tags        = "${var.tags}"
+  tags        = "${merge(var.tags, var.tags_security_group)}"
   name_prefix = "rdns-"
   vpc_id      = "${data.aws_vpc.selected.id}"
 
@@ -171,6 +189,7 @@ resource "aws_security_group" "rdns" {
 }
 
 resource "aws_security_group_rule" "allow_outbound" {
+  # note: tags not supported
   security_group_id = "${aws_security_group.rdns.id}"
   type              = "egress"
   protocol          = "-1"
@@ -180,6 +199,7 @@ resource "aws_security_group_rule" "allow_outbound" {
 }
 
 resource "aws_security_group_rule" "allow_dns_udp" {
+  # note: tags not supported
   security_group_id = "${aws_security_group.rdns.id}"
   type              = "ingress"
   from_port         = 53
@@ -189,6 +209,7 @@ resource "aws_security_group_rule" "allow_dns_udp" {
 }
 
 resource "aws_security_group_rule" "allow_dns_tcp" {
+  # note: tags not supported
   security_group_id = "${aws_security_group.rdns.id}"
   type              = "ingress"
   from_port         = 53
@@ -198,6 +219,7 @@ resource "aws_security_group_rule" "allow_dns_tcp" {
 }
 
 resource "aws_security_group_rule" "allow_icmp" {
+  # note: tags not supported
   security_group_id = "${aws_security_group.rdns.id}"
   type              = "ingress"
   from_port         = "-1"                                    # ICMP type number
@@ -209,11 +231,13 @@ resource "aws_security_group_rule" "allow_icmp" {
 # IAM Role
 
 resource "aws_iam_instance_profile" "instance_profile" {
+  # note: tags not supported
   name = "${aws_iam_role.role.name}"
   role = "${aws_iam_role.role.name}"
 }
 
 resource "aws_iam_role" "role" {
+  # note: tags not supported
   name_prefix = "rdns-forwarder-"
 
   assume_role_policy = <<EOF
@@ -236,6 +260,7 @@ EOF
 # Permit RDNS Forwarders to publish CloudWatch Logs
 # http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/QuickStartEC2Instance.html
 resource "aws_iam_role_policy" "inline1" {
+  # note: tags not supported
   name_prefix = "rdns-forwarder-"
   role        = "${aws_iam_role.role.name}"
 

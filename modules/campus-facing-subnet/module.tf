@@ -68,6 +68,24 @@ variable "vpn_gateway_id" {
   description = "VPN Gateway for campus-facing routes, e.g. vgw-abcd1234"
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_subnet" {
+  description = "Optional custom tags for aws_subnet resource"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_route_table" {
+  description = "Optional custom tags for aws_route_table resource"
+  type        = "map"
+  default     = {}
+}
+
 ## Outputs
 
 output "id" {
@@ -99,13 +117,16 @@ module "subnet" {
   map_public_ip_on_launch = false
 
   #propagating_vgws = ["${var.vpn_gateway_id}"]
-  rtb_id = "${aws_route_table.rtb.id}"
+  rtb_id           = "${aws_route_table.rtb.id}"
+  tags             = "${var.tags}"
+  tags_subnet      = "${var.tags_subnet}"
+  tags_route_table = "${var.tags_route_table}"
 }
 
 resource "aws_route_table" "rtb" {
-  tags {
-    Name = "${var.name}-rtb"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", "${var.name}-rtb",
+  ), var.tags_route_table)}"
 
   vpc_id           = "${var.vpc_id}"
   propagating_vgws = ["${var.vpn_gateway_id}"]
@@ -114,8 +135,10 @@ resource "aws_route_table" "rtb" {
 # default route (only if nat_gateway_id is provided)
 
 resource "aws_route" "default" {
+  # note: tags not supported
   #count = "${var.nat_gateway_id == "" ? 0 : 1}"
-  count                  = "${var.use_nat_gateway ? 1 : 0}"
+  count = "${var.use_nat_gateway ? 1 : 0}"
+
   route_table_id         = "${module.subnet.route_table_id}"
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = "${var.nat_gateway_id}"

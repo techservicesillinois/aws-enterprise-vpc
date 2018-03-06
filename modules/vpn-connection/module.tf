@@ -63,6 +63,18 @@ provider "aws" {
   alias = "vpn_monitor"
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = "map"
+  default     = {}
+}
+
+variable "tags_vpn_connection" {
+  description = "Optional custom tags for aws_vpn_connection resource"
+  type        = "map"
+  default     = {}
+}
+
 ## Outputs
 
 output "id" {
@@ -91,9 +103,9 @@ data "aws_region" "current" {
 # VPN Connection
 
 resource "aws_vpn_connection" "vpn" {
-  tags {
-    Name = "${var.name}"
-  }
+  tags = "${merge(var.tags, map(
+    "Name", var.name,
+  ), var.tags_vpn_connection)}"
 
   vpn_gateway_id      = "${var.vpn_gateway_id}"
   customer_gateway_id = "${var.customer_gateway_id}"
@@ -109,6 +121,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "vpnstatus" {
+  # note: tags not supported
   provider          = "aws.vpn_monitor"
   count             = "${var.create_alarm ? 1 : 0}"
   alarm_name        = "${aws_vpn_connection.vpn.id} | ${var.name}"
