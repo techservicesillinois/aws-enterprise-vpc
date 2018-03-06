@@ -73,7 +73,7 @@ You will need:
      - bucket (2 occurrences, same value)
      - cidr_block (multiple occurrences, all different values)
 
-You may wish to make other changes to `global/main.tf` and `vpc/main.tf` depending on your specific needs (e.g. to deploy more or fewer distinct subnets); some hints are included in the comments within those files.  Note in particular that quite a few components can be omitted if you don't need any campus-facing subnets.
+You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.  Note in particular that quite a few other components can be omitted if you aren't deploying any campus-facing subnets.
 
 If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)

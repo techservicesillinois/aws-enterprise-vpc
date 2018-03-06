@@ -8,7 +8,7 @@ terraform {
 
   ## future (https://github.com/hashicorp/terraform/issues/16835)
   #required_providers {
-  #  aws    = "~> 1.7"
+  #  aws    = "~> 1.9"
   #}
 
   backend "s3" {
@@ -92,7 +92,7 @@ provider "aws" {
   allowed_account_ids = ["${var.account_id}"]
 
   # until https://github.com/hashicorp/terraform/issues/16835
-  version = "~> 1.7"
+  version = "~> 1.9"
 }
 
 # explicit provider for us-east-2 (VPN connection monitoring)
@@ -163,27 +163,6 @@ module "nat-b" {
 
   # this public-facing subnet is defined further down
   public_subnet_id = "${module.public1-b-net.id}"
-}
-
-# create Gateway VPC Endpoints (if desired)
-
-resource "aws_vpc_endpoint" "private-s3" {
-  vpc_id       = "${aws_vpc.vpc.id}"
-  service_name = "com.amazonaws.${var.region}.s3"
-}
-
-resource "aws_vpc_endpoint" "private-dynamodb" {
-  vpc_id       = "${aws_vpc.vpc.id}"
-  service_name = "com.amazonaws.${var.region}.dynamodb"
-}
-
-locals {
-  gateway_vpc_endpoint_count = 2
-
-  gateway_vpc_endpoint_ids = [
-    "${aws_vpc_endpoint.private-s3.id}",
-    "${aws_vpc_endpoint.private-dynamodb.id}",
-  ]
 }
 
 # create a VPN Gateway with a VPN Connection to each of the Customer Gateways
