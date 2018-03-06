@@ -244,6 +244,8 @@ Note that each AWS account will need to use a different S3 bucket for Terraform 
 
 ### Destroying VPCs
 
+The example `vpc/main.tf` uses [`prevent_destroy`](https://www.terraform.io/docs/configuration/resources.html#prevent_destroy) to guard against inadvertent destruction of certain resources; if you really need to destroy your entire VPC, you must first comment out each occurrence of this flag.  **Please note: if you destroy and subsequently recreate your VPC, you will need to contact Technology Services again to re-enable Enterprise Networking features for the new VPC.**
+
 In order for Terraform to successfully destroy a VPC, all other resources that depend on that VPC must be removed first.  Unfortunately, the error message returned by the [AWS API method](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteVpc.html) and printed by Terraform does not provide any indication of _which_ resources are the obstacle:
 
     aws_vpc.vpc: DependencyViolation: The vpc 'vpc-abcd1234' has dependencies and cannot be deleted.

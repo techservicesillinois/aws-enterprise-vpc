@@ -119,6 +119,13 @@ resource "aws_vpc" "vpc" {
 
   enable_dns_support   = true
   enable_dns_hostnames = true
+
+  # Comment this out if you really need to destroy your entire VPC.  Note: if
+  # you subsequently recreate it, you will need to contact Technology Services
+  # again to re-enable Enterprise Networking features for the new VPC.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # create the Internet Gateway
@@ -214,6 +221,19 @@ output "vpn1.customer_gateway_configuration" {
   value     = "${module.vpn1.customer_gateway_configuration_heredoc}"
 }
 
+resource "null_resource" "vpn1" {
+  triggers {
+    t = "${module.vpn1.id}"
+  }
+
+  # Comment this out if you really need to destroy the VPN connection.  Note: if
+  # you subsequently recreate it, you will need to contact Technology Services
+  # again to rebuild the on-campus configuration.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 module "vpn2" {
   source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.8"
 
@@ -234,6 +254,19 @@ module "vpn2" {
 output "vpn2.customer_gateway_configuration" {
   sensitive = true
   value     = "${module.vpn2.customer_gateway_configuration_heredoc}"
+}
+
+resource "null_resource" "vpn2" {
+  triggers {
+    t = "${module.vpn2.id}"
+  }
+
+  # Comment this out if you really need to destroy the VPN connection.  Note: if
+  # you subsequently recreate it, you will need to contact Technology Services
+  # again to rebuild the on-campus configuration.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # accept the specified VPC Peering Connections
