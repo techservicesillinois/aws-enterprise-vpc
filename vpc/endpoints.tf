@@ -3,6 +3,9 @@
 #
 # Copyright (c) 2018 Board of Trustees University of Illinois
 
+# Hint: use `aws ec2 describe-vpc-endpoint-services` to find service names if
+# the lists below are out of date.
+
 locals {
   # Gateway VPC Endpoints, enabled by default
   gateway_vpc_endpoint_service_names = [
@@ -20,6 +23,7 @@ locals {
     #"com.amazonaws.${var.region}.kinesis-streams",
     #"com.amazonaws.${var.region}.kms",
     #"com.amazonaws.${var.region}.servicecatalog",
+    #"com.amazonaws.${var.region}.sns",
     #"com.amazonaws.${var.region}.ssm",
   ]
 
