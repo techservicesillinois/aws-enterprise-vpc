@@ -175,7 +175,8 @@ resource "aws_vpn_gateway" "vgw" {
     Name = "${var.vpc_short_name}-vgw"
   }
 
-  vpc_id = "${aws_vpc.vpc.id}"
+  amazon_side_asn = 64512
+  vpc_id          = "${aws_vpc.vpc.id}"
 }
 
 module "vpn1" {
