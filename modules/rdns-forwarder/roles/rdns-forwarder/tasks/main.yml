@@ -1,5 +1,24 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 ---
+# Use this task (VERY carefully!) to modify the ansible_pull settings of
+# running instances previously deployed from this vX.Y release branch.  Note
+# that this takes *two* full update cycles: one (using this playbook) to
+# update the host_vars file and cron task for next time, and a second to
+# actually run the new version of the playbook.
+- name: override ansible_pull settings?
+  set_fact:
+    #ansible_pull_url: https://github.com/techservicesillinois/aws-enterprise-vpc.git
+    #ansible_pull_checkout: vX.Y
+
+- name: update ansible_pull settings saved in host vars
+  lineinfile:
+    dest: /etc/ansible/host_vars/localhost.yml
+    regexp: "^{{ item }}: "
+    line: "{{ item }}: {{ lookup('vars', item) }}"
+  with_items:
+    - ansible_pull_url
+    - ansible_pull_checkout
+
 - ec2_facts:
 
 - name: install packages
