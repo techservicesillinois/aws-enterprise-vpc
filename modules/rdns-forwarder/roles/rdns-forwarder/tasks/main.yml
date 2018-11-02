@@ -19,7 +19,7 @@
     - ansible_pull_url
     - ansible_pull_checkout
 
-- ec2_facts:
+- ec2_metadata_facts:
 
 - name: install packages
   package: name={{ item }} state=present
