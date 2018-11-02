@@ -90,7 +90,7 @@ variable "key_name" {
 # for production deployments)
 
 variable "ansible_pull_url" {
-  default = "https://github.com/cites-illinois/aws-enterprise-vpc.git"
+  default = "https://github.com/techservicesillinois/aws-enterprise-vpc.git"
 }
 
 variable "ansible_pull_checkout" {
