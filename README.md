@@ -57,7 +57,7 @@ You will need:
 
   * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.
 
-    Download the [latest release of this repository](https://github.com/cites-illinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
+    Download the [latest release of this repository](https://github.com/techservicesillinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
 
     Note that you do _not_ need your own copy of the module code; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this online repository.
 

@@ -144,7 +144,7 @@ resource "aws_internet_gateway" "igw" {
 # require outbound Internet access.
 
 module "nat-a" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.8"
 
   tags {
     Name = "${var.vpc_short_name}-nat-a"
@@ -155,7 +155,7 @@ module "nat-a" {
 }
 
 module "nat-b" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.8"
 
   tags {
     Name = "${var.vpc_short_name}-nat-b"
@@ -179,7 +179,7 @@ resource "aws_vpn_gateway" "vgw" {
 }
 
 module "vpn1" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.8"
 
   name                = "${var.vpc_short_name}-vpn1"
   vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
@@ -214,7 +214,7 @@ resource "null_resource" "vpn1" {
 }
 
 module "vpn2" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.8"
 
   name                = "${var.vpc_short_name}-vpn2"
   vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
@@ -294,7 +294,7 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 # want your subnets to use those things.
 
 module "public1-a-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.8"
 
   vpc_id              = "${aws_vpc.vpc.id}"
   name                = "${var.vpc_short_name}-public1-a-net"
@@ -308,7 +308,7 @@ module "public1-a-net" {
 }
 
 module "public1-b-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.8"
 
   vpc_id              = "${aws_vpc.vpc.id}"
   name                = "${var.vpc_short_name}-public1-b-net"
@@ -322,7 +322,7 @@ module "public1-b-net" {
 }
 
 module "campus1-a-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.8"
 
   vpc_id            = "${aws_vpc.vpc.id}"
   name              = "${var.vpc_short_name}-campus1-a-net"
@@ -337,7 +337,7 @@ module "campus1-a-net" {
 }
 
 module "campus1-b-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.8"
 
   vpc_id            = "${aws_vpc.vpc.id}"
   name              = "${var.vpc_short_name}-campus1-b-net"
@@ -352,7 +352,7 @@ module "campus1-b-net" {
 }
 
 module "private1-a-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.8"
 
   vpc_id            = "${aws_vpc.vpc.id}"
   name              = "${var.vpc_short_name}-private1-a-net"
@@ -366,7 +366,7 @@ module "private1-a-net" {
 }
 
 module "private1-b-net" {
-  source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.8"
 
   vpc_id            = "${aws_vpc.vpc.id}"
   name              = "${var.vpc_short_name}-private1-b-net"

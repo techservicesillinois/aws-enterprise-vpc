@@ -90,6 +90,9 @@ variable "key_name" {
 # for production deployments)
 
 variable "ansible_pull_url" {
+  # WARNING: GitHub organization has been renamed to techservicesillinois, but
+  # we can't change user_data on an existing release branch without
+  # destroying/recreating instances!  Fortunately GitHub will redirect.
   default = "https://github.com/cites-illinois/aws-enterprise-vpc.git"
 }
 

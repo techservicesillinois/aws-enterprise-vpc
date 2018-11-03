@@ -52,7 +52,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      ```hcl
      module "rdns-a" {
-       source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
+       source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
        tags = {
          Name = "${var.vpc_short_name}-rdns-a"
        }
@@ -65,7 +65,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
      }
 
      module "rdns-b" {
-       source = "git::https://github.com/cites-illinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
+       source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=vX.Y" #FIXME
        tags = {
            Name = "${var.vpc_short_name}-rdns-b"
        }
