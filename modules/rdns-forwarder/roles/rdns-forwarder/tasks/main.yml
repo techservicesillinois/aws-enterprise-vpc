@@ -7,7 +7,7 @@
 # actually run the new version of the playbook.
 - name: override ansible_pull settings?
   set_fact:
-    #ansible_pull_url: https://github.com/techservicesillinois/aws-enterprise-vpc.git
+    ansible_pull_url: https://github.com/techservicesillinois/aws-enterprise-vpc.git
     #ansible_pull_checkout: vX.Y
 
 - name: update ansible_pull settings saved in host vars
