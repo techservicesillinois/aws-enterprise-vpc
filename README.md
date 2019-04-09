@@ -29,7 +29,11 @@ You will need:
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * an S3 bucket **with versioning enabled** for storing Terraform state, and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).  To create these resources:
+  * an S3 bucket **with versioning enabled** for storing [Terraform state](https://www.terraform.io/docs/state/), and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).
+
+    _Caution_: always obtain expert advice before rolling back or modifying a Terraform state file!
+
+    To create these resources (once per AWS account):
 
     1. Set up the AWS Command Line Interface on your workstation (see "Workstation Setup" further down).
 
