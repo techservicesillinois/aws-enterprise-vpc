@@ -73,7 +73,7 @@ provider "aws" {
 # Customer Gateways (per region, add more regions if needed)
 
 module "cgw_us-east-1" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.9"
 
   providers = {
     aws = "aws.us-east-1"
@@ -81,7 +81,7 @@ module "cgw_us-east-1" {
 }
 
 module "cgw_us-east-2" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.8"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.9"
 
   providers = {
     aws = "aws.us-east-2"
