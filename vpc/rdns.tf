@@ -5,8 +5,8 @@
 ## Inputs (specified in terraform.tfvars)
 
 variable "core_services_resolvers" {
-  type        = "list"
   description = "IPv4 addresses of Core Services Resolvers in the Core Services VPC with which you have a VPC peering"
+  type        = list(string)
   default     = []
 }
 
@@ -29,8 +29,8 @@ resource "aws_default_vpc_dhcp_options" "default" {}
 
 # re-associate the default DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
-  vpc_id          = "${aws_vpc.vpc.id}"
-  dhcp_options_id = "${aws_default_vpc_dhcp_options.default.id}"
+  vpc_id          = aws_vpc.vpc.id
+  dhcp_options_id = aws_default_vpc_dhcp_options.default.id
 }
 */
 
@@ -38,23 +38,26 @@ resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
 /*
 ## Option 2: use Core Services Resolvers directly.
 
+# fail on empty core_services_resolvers
+locals {
+  # workaround for lack of assertions https://github.com/hashicorp/terraform/issues/15469
+  assert_core_services_resolvers = length(var.core_services_resolvers) > 0 ? null : file("ERROR: must specify core_services_resolvers")
+}
+
 # create a DHCP Options Set
 resource "aws_vpc_dhcp_options" "dhcp_option2" {
-  # fail on empty core_services_resolvers
-  count = "${length(var.core_services_resolvers[0]) > 0 ? 1 : 0}"
-
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-dhcp"
   }
 
-  domain_name_servers = "${var.core_services_resolvers}"
+  domain_name_servers = var.core_services_resolvers
   domain_name         = "${var.region}.compute.internal"
 }
 
 # associate the DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
-  vpc_id          = "${aws_vpc.vpc.id}"
-  dhcp_options_id = "${aws_vpc_dhcp_options.dhcp_option2.id}"
+  vpc_id          = aws_vpc.vpc.id
+  dhcp_options_id = aws_vpc_dhcp_options.dhcp_option2.id
 }
 */
 
@@ -65,6 +68,12 @@ resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
 ## Be sure to read and understand [modules/rdns-forwarder/README.md] before
 ## deploying this option.
 
+# fail on empty core_services_resolvers
+locals {
+  # workaround for lack of assertions https://github.com/hashicorp/terraform/issues/15469
+  assert_core_services_resolvers = length(var.core_services_resolvers) > 0 ? null : file("ERROR: must specify core_services_resolvers")
+}
+
 module "rdns-a" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
 
@@ -73,13 +82,13 @@ module "rdns-a" {
   }
 
   instance_type           = "t2.micro"
-  core_services_resolvers = "${var.core_services_resolvers}"
-  subnet_id               = "${module.public1-a-net.id}"
+  core_services_resolvers = var.core_services_resolvers
+  subnet_id               = module.public1-a-net.id
 
   # First four IP addresses on each subnet (counting the network address) are
   # reserved by AWS, so compute the fifth one.  If that IP is already taken,
   # you can specify a different one instead, but this should usually work.
-  private_ip = "${cidrhost(module.public1-a-net.cidr_block, 4)}"
+  private_ip = cidrhost(module.public1-a-net.cidr_block, 4)
 
   zone_update_minute       = "5"
   full_update_day_of_month = "1"
@@ -93,10 +102,10 @@ module "rdns-b" {
   }
 
   instance_type           = "t2.micro"
-  core_services_resolvers = "${var.core_services_resolvers}"
-  subnet_id               = "${module.public1-b-net.id}"
+  core_services_resolvers = var.core_services_resolvers
+  subnet_id               = module.public1-b-net.id
 
-  private_ip = "${cidrhost(module.public1-b-net.cidr_block, 4)}"
+  private_ip = cidrhost(module.public1-b-net.cidr_block, 4)
 
   zone_update_minute       = "35"
   full_update_day_of_month = "15"
@@ -104,21 +113,18 @@ module "rdns-b" {
 
 # create a DHCP Options Set
 resource "aws_vpc_dhcp_options" "dhcp_option3" {
-  # fail on empty core_services_resolvers
-  count = "${length(var.core_services_resolvers[0]) > 0 ? 1 : 0}"
-
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-dhcp"
   }
 
-  domain_name_servers = ["${module.rdns-a.private_ip}", "${module.rdns-b.private_ip}"]
+  domain_name_servers = [module.rdns-a.private_ip, module.rdns-b.private_ip]
   domain_name         = "${var.region}.compute.internal"
 }
 
 # associate the DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
-  vpc_id          = "${aws_vpc.vpc.id}"
-  dhcp_options_id = "${aws_vpc_dhcp_options.dhcp_option3.id}"
+  vpc_id          = aws_vpc.vpc.id
+  dhcp_options_id = aws_vpc_dhcp_options.dhcp_option3.id
 }
 */
 

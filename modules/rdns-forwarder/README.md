@@ -58,7 +58,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        }
        instance_type            = "t2.micro"
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
-       subnet_id                = "${module.public1-a-net.id}"
+       subnet_id                = module.public1-a-net.id
        private_ip               = "192.168.0.5" #FIXME
        zone_update_minute       = "5"
        full_update_day_of_month = "1"
@@ -71,7 +71,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        }
        instance_type            = "t2.micro"
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
-       subnet_id                = "${module.public1-b-net.id}"
+       subnet_id                = module.public1-b-net.id
        private_ip               = "192.168.1.5" #FIXME
        zone_update_minute       = "35"
        full_update_day_of_month = "15"
@@ -90,16 +90,16 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      ```hcl
      resource "aws_vpc_dhcp_options" "dhcp_options" {
-       tags {
+       tags = {
          Name = "${var.vpc_short_name}-dhcp"
        }
-       domain_name_servers = ["${module.rdns-a.private_ip}", "${module.rdns-b.private_ip}"]
+       domain_name_servers = [module.rdns-a.private_ip, module.rdns-b.private_ip]
        domain_name         = "${var.region}.compute.internal"
      }
 
      resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
-       vpc_id          = "${aws_vpc.vpc.id}"
-       dhcp_options_id = "${aws_vpc_dhcp_options.dhcp_options.id}"
+       vpc_id          = aws_vpc.vpc.id
+       dhcp_options_id = aws_vpc_dhcp_options.dhcp_options.id
      }
      ```
 

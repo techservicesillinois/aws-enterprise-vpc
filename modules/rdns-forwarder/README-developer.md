@@ -22,7 +22,7 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
     }
     instance_type            = "t2.micro"
     core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
-    subnet_id                = "${module.public1-a-net.id}"
+    subnet_id                = module.public1-a-net.id
     private_ip               = "192.168.0.7" #FIXME
     zone_update_minute       = "5"
     # TESTING ONLY
@@ -34,7 +34,7 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
   }
 
   resource "aws_security_group_rule" "rdns-test-allow_ssh" {
-    security_group_id = "${module.rdns-test.security_group_id}"
+    security_group_id = module.rdns-test.security_group_id
     type              = "ingress"
     from_port         = 22
     to_port           = 22

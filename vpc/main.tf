@@ -4,12 +4,12 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.11.2"
+  required_version = "~> 0.12.9"
 
-  ## future (https://github.com/hashicorp/terraform/issues/16835)
-  #required_providers {
-  #  aws    = "~> 1.9"
-  #}
+  required_providers {
+    aws  = "~> 2.32"
+    null = "~> 2.1"
+  }
 
   backend "s3" {
     region         = "us-east-2"
@@ -31,7 +31,7 @@ data "terraform_remote_state" "global" {
   backend = "s3"
 
   # must match ../global/main.tf
-  config {
+  config = {
     region = "us-east-2"
     bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
     key    = "Shared Networking/global/terraform.tfstate"
@@ -42,42 +42,45 @@ data "terraform_remote_state" "global" {
 
 variable "region" {
   description = "AWS region for this VPC, e.g. us-east-2"
+  type        = string
 }
 
 variable "account_id" {
   description = "Your 12-digit AWS account number"
+  type        = string
 }
 
 variable "vpc_short_name" {
   description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
+  type        = string
 }
 
 variable "pcx_ids" {
-  type        = "list"
   description = "Optional list of existing VPC Peering Connections (e.g. pcx-abcd1234) to use in routing tables"
+  type        = list(string)
   default     = []
 }
 
 ## Outputs
 
 output "account_id" {
-  value = "${var.account_id}"
+  value = var.account_id
 }
 
 output "vpc_short_name" {
-  value = "${var.vpc_short_name}"
+  value = var.vpc_short_name
 }
 
-output "vpc.id" {
-  value = "${aws_vpc.vpc.id}"
+output "vpc_id" {
+  value = aws_vpc.vpc.id
 }
 
-output "vpc.cidr_block" {
-  value = "${aws_vpc.vpc.cidr_block}"
+output "vpc_cidr_block" {
+  value = aws_vpc.vpc.cidr_block
 }
 
-output "vpc.region" {
-  value = "${var.region}"
+output "vpc_region" {
+  value = var.region
 }
 
 # note: additional outputs are specified in the VPN section below
@@ -86,13 +89,10 @@ output "vpc.region" {
 
 # default provider for chosen region
 provider "aws" {
-  region = "${var.region}"
+  region = var.region
 
   # avoid accidentally modifying the wrong AWS account
-  allowed_account_ids = ["${var.account_id}"]
-
-  # until https://github.com/hashicorp/terraform/issues/16835
-  version = "~> 1.9"
+  allowed_account_ids = [var.account_id]
 }
 
 # explicit provider for us-east-2 (VPN connection monitoring)
@@ -101,7 +101,7 @@ provider "aws" {
   region = "us-east-2"
 
   # avoid accidentally modifying the wrong AWS account
-  allowed_account_ids = ["${var.account_id}"]
+  allowed_account_ids = [var.account_id]
 }
 
 ## Resources
@@ -109,7 +109,7 @@ provider "aws" {
 # create the VPC
 
 resource "aws_vpc" "vpc" {
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-vpc"
   }
 
@@ -131,11 +131,11 @@ resource "aws_vpc" "vpc" {
 # create the Internet Gateway
 
 resource "aws_internet_gateway" "igw" {
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-igw"
   }
 
-  vpc_id = "${aws_vpc.vpc.id}"
+  vpc_id = aws_vpc.vpc.id
 }
 
 # create a NAT Gateway in each Availability Zone
@@ -146,23 +146,23 @@ resource "aws_internet_gateway" "igw" {
 module "nat-a" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.9"
 
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-nat-a"
   }
 
   # this public-facing subnet is defined further down
-  public_subnet_id = "${module.public1-a-net.id}"
+  public_subnet_id = module.public1-a-net.id
 }
 
 module "nat-b" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.9"
 
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-nat-b"
   }
 
   # this public-facing subnet is defined further down
-  public_subnet_id = "${module.public1-b-net.id}"
+  public_subnet_id = module.public1-b-net.id
 }
 
 # create a VPN Gateway with a VPN Connection to each of the Customer Gateways
@@ -171,39 +171,39 @@ module "nat-b" {
 # Omit this section if you do not need any campus-facing subnets.
 
 resource "aws_vpn_gateway" "vgw" {
-  tags {
+  tags = {
     Name = "${var.vpc_short_name}-vgw"
   }
 
   amazon_side_asn = 64512
-  vpc_id          = "${aws_vpc.vpc.id}"
+  vpc_id          = aws_vpc.vpc.id
 }
 
 module "vpn1" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.9"
 
   name                = "${var.vpc_short_name}-vpn1"
-  vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
-  customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws1-pub")}"
+  vpn_gateway_id      = aws_vpn_gateway.vgw.id
+  customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws1-pub"]
   create_alarm        = true
 
-  alarm_actions             = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  ok_actions                = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
+  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
+  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
 
-  providers {
-    "aws.vpn_monitor" = "aws.us-east-2"
+  providers = {
+    aws.vpn_monitor = aws.us-east-2
   }
 }
 
-output "vpn1.customer_gateway_configuration" {
+output "vpn1_customer_gateway_configuration" {
   sensitive = true
-  value     = "${module.vpn1.customer_gateway_configuration_heredoc}"
+  value     = module.vpn1.customer_gateway_configuration_heredoc
 }
 
 resource "null_resource" "vpn1" {
-  triggers {
-    t = "${module.vpn1.id}"
+  triggers = {
+    t = module.vpn1.id
   }
 
   # Comment this out if you really need to destroy the VPN connection.  Note: if
@@ -218,27 +218,27 @@ module "vpn2" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.9"
 
   name                = "${var.vpc_short_name}-vpn2"
-  vpn_gateway_id      = "${aws_vpn_gateway.vgw.id}"
-  customer_gateway_id = "${lookup(data.terraform_remote_state.global.customer_gateway_ids[var.region],"vpnhub-aws2-pub")}"
+  vpn_gateway_id      = aws_vpn_gateway.vgw.id
+  customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws2-pub"]
   create_alarm        = true
 
-  alarm_actions             = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  insufficient_data_actions = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
-  ok_actions                = ["${data.terraform_remote_state.global.vpn_monitor_arn}"]
+  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
+  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
+  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
 
-  providers {
-    "aws.vpn_monitor" = "aws.us-east-2"
+  providers = {
+    aws.vpn_monitor = aws.us-east-2
   }
 }
 
-output "vpn2.customer_gateway_configuration" {
+output "vpn2_customer_gateway_configuration" {
   sensitive = true
-  value     = "${module.vpn2.customer_gateway_configuration_heredoc}"
+  value     = module.vpn2.customer_gateway_configuration_heredoc
 }
 
 resource "null_resource" "vpn2" {
-  triggers {
-    t = "${module.vpn2.id}"
+  triggers = {
+    t = module.vpn2.id
   }
 
   # Comment this out if you really need to destroy the VPN connection.  Note: if
@@ -252,16 +252,16 @@ resource "null_resource" "vpn2" {
 # accept the specified VPC Peering Connections
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {
-  count                     = "${length(var.pcx_ids)}"
-  vpc_peering_connection_id = "${var.pcx_ids[count.index]}"
+  count                     = length(var.pcx_ids)
+  vpc_peering_connection_id = var.pcx_ids[count.index]
   auto_accept               = true
 }
 
 # waiting a few seconds for this to take effect enables subnets to handle new
 # pcx routes successfully on the first try
 resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
-  triggers {
-    t = "${join("",aws_vpc_peering_connection_accepter.pcx.*.id)}"
+  triggers = {
+    t = join("",aws_vpc_peering_connection_accepter.pcx[*].id)
   }
 
   # You may safely comment out this provisioner block if your workstation does
@@ -297,85 +297,85 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 module "public1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.9"
 
-  vpc_id              = "${aws_vpc.vpc.id}"
+  vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-a-net"
-  cidr_block          = "192.168.0.0/27"                                               #FIXME
+  cidr_block          = "192.168.0.0/27"                                          #FIXME
   availability_zone   = "${var.region}a"
-  pcx_ids             = "${var.pcx_ids}"
-  dummy_depends_on    = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids        = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count      = "${local.gateway_vpc_endpoint_count}"
-  internet_gateway_id = "${aws_internet_gateway.igw.id}"
+  pcx_ids             = var.pcx_ids
+  dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids        = local.gateway_vpc_endpoint_ids
+  endpoint_count      = local.gateway_vpc_endpoint_count
+  internet_gateway_id = aws_internet_gateway.igw.id
 }
 
 module "public1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.9"
 
-  vpc_id              = "${aws_vpc.vpc.id}"
+  vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-b-net"
-  cidr_block          = "192.168.0.32/27"                                              #FIXME
+  cidr_block          = "192.168.0.32/27"                                         #FIXME
   availability_zone   = "${var.region}b"
-  pcx_ids             = "${var.pcx_ids}"
-  dummy_depends_on    = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids        = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count      = "${local.gateway_vpc_endpoint_count}"
-  internet_gateway_id = "${aws_internet_gateway.igw.id}"
+  pcx_ids             = var.pcx_ids
+  dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids        = local.gateway_vpc_endpoint_ids
+  endpoint_count      = local.gateway_vpc_endpoint_count
+  internet_gateway_id = aws_internet_gateway.igw.id
 }
 
 module "campus1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.9"
 
-  vpc_id            = "${aws_vpc.vpc.id}"
+  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-a-net"
-  cidr_block        = "192.168.0.64/27"                                              #FIXME
+  cidr_block        = "192.168.0.64/27"                                         #FIXME
   availability_zone = "${var.region}a"
-  pcx_ids           = "${var.pcx_ids}"
-  dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
-  vpn_gateway_id    = "${aws_vpn_gateway.vgw.id}"
-  nat_gateway_id    = "${module.nat-a.id}"
+  pcx_ids           = var.pcx_ids
+  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids      = local.gateway_vpc_endpoint_ids
+  endpoint_count    = local.gateway_vpc_endpoint_count
+  vpn_gateway_id    = aws_vpn_gateway.vgw.id
+  nat_gateway_id    = module.nat-a.id
 }
 
 module "campus1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.9"
 
-  vpc_id            = "${aws_vpc.vpc.id}"
+  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-b-net"
-  cidr_block        = "192.168.0.96/27"                                              #FIXME
+  cidr_block        = "192.168.0.96/27"                                         #FIXME
   availability_zone = "${var.region}b"
-  pcx_ids           = "${var.pcx_ids}"
-  dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
-  vpn_gateway_id    = "${aws_vpn_gateway.vgw.id}"
-  nat_gateway_id    = "${module.nat-b.id}"
+  pcx_ids           = var.pcx_ids
+  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids      = local.gateway_vpc_endpoint_ids
+  endpoint_count    = local.gateway_vpc_endpoint_count
+  vpn_gateway_id    = aws_vpn_gateway.vgw.id
+  nat_gateway_id    = module.nat-b.id
 }
 
 module "private1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.9"
 
-  vpc_id            = "${aws_vpc.vpc.id}"
+  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-a-net"
-  cidr_block        = "192.168.0.128/27"                                             #FIXME
+  cidr_block        = "192.168.0.128/27"                                        #FIXME
   availability_zone = "${var.region}a"
-  pcx_ids           = "${var.pcx_ids}"
-  dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
-  nat_gateway_id    = "${module.nat-a.id}"
+  pcx_ids           = var.pcx_ids
+  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids      = local.gateway_vpc_endpoint_ids
+  endpoint_count    = local.gateway_vpc_endpoint_count
+  nat_gateway_id    = module.nat-a.id
 }
 
 module "private1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.9"
 
-  vpc_id            = "${aws_vpc.vpc.id}"
+  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-b-net"
-  cidr_block        = "192.168.0.160/27"                                             #FIXME
+  cidr_block        = "192.168.0.160/27"                                        #FIXME
   availability_zone = "${var.region}b"
-  pcx_ids           = "${var.pcx_ids}"
-  dummy_depends_on  = "${null_resource.wait_for_vpc_peering_connection_accepter.id}"
-  endpoint_ids      = ["${local.gateway_vpc_endpoint_ids}"]
-  endpoint_count    = "${local.gateway_vpc_endpoint_count}"
-  nat_gateway_id    = "${module.nat-b.id}"
+  pcx_ids           = var.pcx_ids
+  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids      = local.gateway_vpc_endpoint_ids
+  endpoint_count    = local.gateway_vpc_endpoint_count
+  nat_gateway_id    = module.nat-b.id
 }

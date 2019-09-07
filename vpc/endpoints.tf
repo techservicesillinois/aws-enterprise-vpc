@@ -28,54 +28,54 @@ locals {
   ]
 
   # which subnets from main.tf to use for Interface VPC Endpoints
-  interface_vpc_endpoint_subnet_ids = ["${module.private1-a-net.id}", "${module.private1-b-net.id}"]
+  interface_vpc_endpoint_subnet_ids = [module.private1-a-net.id, module.private1-b-net.id]
 
   # derived values used in main.tf
-  gateway_vpc_endpoint_count = "${length(local.gateway_vpc_endpoint_service_names)}"
-  gateway_vpc_endpoint_ids   = ["${aws_vpc_endpoint.gateway.*.id}"]
+  gateway_vpc_endpoint_count = length(local.gateway_vpc_endpoint_service_names)
+  gateway_vpc_endpoint_ids   = aws_vpc_endpoint.gateway[*].id
 }
 
 # create Gateway VPC Endpoints (if desired)
 
 resource "aws_vpc_endpoint" "gateway" {
-  count = "${length(local.gateway_vpc_endpoint_service_names)}"
+  count = length(local.gateway_vpc_endpoint_service_names)
 
-  vpc_id            = "${aws_vpc.vpc.id}"
+  vpc_id            = aws_vpc.vpc.id
   vpc_endpoint_type = "Gateway"
-  service_name      = "${local.gateway_vpc_endpoint_service_names[count.index]}"
+  service_name      = local.gateway_vpc_endpoint_service_names[count.index]
 }
 
 # create Interface VPC Endpoints (if desired)
 
 resource "aws_vpc_endpoint" "interface" {
-  count = "${length(local.interface_vpc_endpoint_service_names)}"
+  count = length(local.interface_vpc_endpoint_service_names)
 
-  vpc_id              = "${aws_vpc.vpc.id}"
+  vpc_id              = aws_vpc.vpc.id
   vpc_endpoint_type   = "Interface"
-  service_name        = "${local.interface_vpc_endpoint_service_names[count.index]}"
+  service_name        = local.interface_vpc_endpoint_service_names[count.index]
   private_dns_enabled = true
-  security_group_ids  = ["${aws_security_group.endpoints.id}"]
-  subnet_ids          = ["${local.interface_vpc_endpoint_subnet_ids}"]
+  security_group_ids  = aws_security_group.endpoints[*].id
+  subnet_ids          = local.interface_vpc_endpoint_subnet_ids
 }
 
 # Security Group for Interface VPC Endpoints (if any)
 
 resource "aws_security_group" "endpoints" {
-  count = "${length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0}"
+  count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
   tags = {
     Name = "${var.vpc_short_name}-vpc-endpoints"
   }
 
   name_prefix = "vpc-endpoints-"
-  vpc_id      = "${aws_vpc.vpc.id}"
+  vpc_id      = aws_vpc.vpc.id
 }
 
 # allow all outbound
 resource "aws_security_group_rule" "endpoint_egress" {
-  count = "${length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0}"
+  count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
-  security_group_id = "${aws_security_group.endpoints.id}"
+  security_group_id = aws_security_group.endpoints[0].id
   type              = "egress"
   protocol          = "-1"
   from_port         = 0
@@ -85,12 +85,12 @@ resource "aws_security_group_rule" "endpoint_egress" {
 
 # allow inbound only from this VPC
 resource "aws_security_group_rule" "endpoint_ingress" {
-  count = "${length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0}"
+  count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
-  security_group_id = "${aws_security_group.endpoints.id}"
+  security_group_id = aws_security_group.endpoints[0].id
   type              = "ingress"
   protocol          = "-1"
   from_port         = 0
   to_port           = 0
-  cidr_blocks       = ["${aws_vpc.vpc.cidr_block}"]
+  cidr_blocks       = [aws_vpc.vpc.cidr_block]
 }

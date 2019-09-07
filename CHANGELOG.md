@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - new Interface VPC Endpoint for SNS
 
 ### Changed
+- requires Terraform 0.12.x (and AWS provider 2.x)
+- vpc.* outputs renamed to vpc_*
 - rdns-forwarder: use ec2_metadata_facts instead of deprecated alias ec2_facts
 
 
