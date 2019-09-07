@@ -4,12 +4,11 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.11.2"
+  required_version = "~> 0.12.9"
 
-  ## future (https://github.com/hashicorp/terraform/issues/16835)
-  #required_providers {
-  #  aws    = "~> 1.7"
-  #}
+  required_providers {
+    aws = "~> 2.32"
+  }
 
   backend "s3" {
     region         = "us-east-2"
@@ -29,19 +28,20 @@ terraform {
 
 variable "account_id" {
   description = "Your 12-digit AWS account number"
+  type        = string
 }
 
 ## Outputs
 
 output "customer_gateway_ids" {
   value = {
-    us-east-1 = "${module.cgw_us-east-1.customer_gateway_ids}"
-    us-east-2 = "${module.cgw_us-east-2.customer_gateway_ids}"
+    us-east-1 = module.cgw_us-east-1.customer_gateway_ids
+    us-east-2 = module.cgw_us-east-2.customer_gateway_ids
   }
 }
 
 output "vpn_monitor_arn" {
-  value = "${aws_sns_topic.vpn-monitor.arn}"
+  value = aws_sns_topic.vpn-monitor.arn
 }
 
 ## Providers
@@ -51,10 +51,7 @@ provider "aws" {
   region = "us-east-1"
 
   # avoid accidentally modifying the wrong AWS account
-  allowed_account_ids = ["${var.account_id}"]
-
-  # until https://github.com/hashicorp/terraform/issues/16835
-  version = "~> 1.7"
+  allowed_account_ids = [var.account_id]
 }
 
 provider "aws" {
@@ -62,10 +59,7 @@ provider "aws" {
   region = "us-east-2"
 
   # avoid accidentally modifying the wrong AWS account
-  allowed_account_ids = ["${var.account_id}"]
-
-  # until https://github.com/hashicorp/terraform/issues/16835
-  version = "~> 1.7"
+  allowed_account_ids = [var.account_id]
 }
 
 ## Resources
@@ -95,7 +89,7 @@ resource "aws_cloudformation_stack" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor"
 
-  parameters {
+  parameters = {
     # 5-minute interval
     CWEventSchedule = "cron(0/5 * * * ? *)"
   }
