@@ -12,9 +12,9 @@ There is no one-size-fits-all blueprint for an entire VPC; while they all genera
 
 _Note_: these same building blocks can also be used to construct an Independent VPC.
 
-If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, though some details are now obsolete due to recent improvements in Terraform (for example, we no longer need the separate "Terragrunt" tool to effectively manage remote state configuration).  You can also consult Terraform's official [Getting Started Guide](https://www.terraform.io/intro/getting-started/install.html).  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
+If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction.  You can also consult Terraform's official [Getting Started Guide](https://www.terraform.io/intro/getting-started/install.html).  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
 
-One thing you should know: **if at first you don't succeed, try 'apply' again.**  Terraform is usually quite good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once because Terraform didn't wait long enough between steps.
+One thing you should know: **if at first you don't succeed, try 'apply' again.**  Terraform is usually good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once simply because Terraform didn't wait long enough between steps.
 
 
 
@@ -87,8 +87,8 @@ If you leave everything else unchanged, the result will be an Enterprise VPC in 
 
 _Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
 
-You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#.nf92opnyn):
-> **"The master branch of the live [source control] repository is a 1:1 representation of what’s actually deployed in production."**
+You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
+> **"The master branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
 
 To set up a new workstation:
 
