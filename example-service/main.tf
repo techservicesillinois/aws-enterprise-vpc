@@ -4,12 +4,11 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.11.2"
+  required_version = "~> 0.12.9"
 
-  ## future (https://github.com/hashicorp/terraform/issues/16835)
-  #required_providers {
-  #  aws    = "~> 1.7"
-  #}
+  required_providers {
+    aws = "~> 2.32"
+  }
 
   backend "s3" {
     region         = "us-east-2"
@@ -29,42 +28,46 @@ terraform {
 
 variable "region" {
   description = "AWS region for this VPC, e.g. us-east-2"
+  type        = string
 }
 
 variable "account_id" {
   description = "Your 12-digit AWS account number"
+  type        = string
 }
 
 variable "vpc_short_name" {
   description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
+  type        = string
 }
 
 variable "ssh_cidr_blocks" {
   description = "Optional IPv4 CIDR blocks from which to allow SSH"
-  type        = "list"
+  type        = list(string)
   default     = []
 }
 
 variable "ssh_public_key" {
   description = "Optional SSH public key material"
+  type        = string
   default     = ""
 }
 
 ## Outputs
 
 output "private_ip" {
-  value = "${aws_instance.example.private_ip}"
+  value = aws_instance.example.private_ip
 }
 
 output "public_ip" {
-  value = "${aws_instance.example.public_ip}"
+  value = aws_instance.example.public_ip
 }
 
 ## Providers
 
 provider "aws" {
   region              = "${var.region}"
-  allowed_account_ids = ["${var.account_id}"]
+  allowed_account_ids = [var.account_id]
 }
 
 # Get the latest Amazon Linux AMI matching the specified name pattern
@@ -91,7 +94,7 @@ data "aws_vpc" "vpc" {
 # AWS account happen to have identically-named Subnets) by tag:Name
 
 data "aws_subnet" "public1-a-net" {
-  vpc_id = "${data.aws_vpc.vpc.id}"
+  vpc_id = data.aws_vpc.vpc.id
 
   tags = {
     Name = "${var.vpc_short_name}-public1-a-net"
@@ -101,15 +104,15 @@ data "aws_subnet" "public1-a-net" {
 # launch an EC2 instance in the selected Subnet
 
 resource "aws_instance" "example" {
-  ami                    = "${data.aws_ami.ami.id}"
+  ami                    = data.aws_ami.ami.id
   instance_type          = "t2.nano"
-  subnet_id              = "${data.aws_subnet.public1-a-net.id}"
-  vpc_security_group_ids = ["${aws_security_group.example.id}"]
+  subnet_id              = data.aws_subnet.public1-a-net.id
+  vpc_security_group_ids = [aws_security_group.example.id]
 
-  # yields "" if we decline to create aws_key_pair.example
-  key_name = "${join("", aws_key_pair.example.*.key_name)}"
+  # use "null" to omit this argument if we didn't create an aws_key_pair
+  key_name = length(aws_key_pair.example) > 0 ? aws_key_pair.example[0].key_name : null
 
-  tags {
+  tags = {
     Name = "example-instance"
   }
 }
@@ -118,17 +121,17 @@ resource "aws_instance" "example" {
 
 resource "aws_key_pair" "example" {
   # only create this resource if ssh_public_key is specified
-  count = "${var.ssh_public_key == "" ? 0 : 1}"
+  count = var.ssh_public_key != "" ? 1 : 0
 
   key_name_prefix = "example-"
-  public_key      = "${var.ssh_public_key}"
+  public_key      = var.ssh_public_key
 }
 
 # Security Group
 
 resource "aws_security_group" "example" {
   name_prefix = "example-"
-  vpc_id      = "${data.aws_vpc.vpc.id}"
+  vpc_id      = data.aws_vpc.vpc.id
 
   lifecycle {
     create_before_destroy = true
@@ -136,7 +139,7 @@ resource "aws_security_group" "example" {
 }
 
 resource "aws_security_group_rule" "allow_outbound" {
-  security_group_id = "${aws_security_group.example.id}"
+  security_group_id = aws_security_group.example.id
   type              = "egress"
   protocol          = "-1"
   from_port         = 0
@@ -146,12 +149,12 @@ resource "aws_security_group_rule" "allow_outbound" {
 
 resource "aws_security_group_rule" "allow_ssh" {
   # only create this rule if ssh_cidr_blocks is specified
-  count = "${length(var.ssh_cidr_blocks) > 0 ? 1 : 0}"
+  count = length(var.ssh_cidr_blocks) > 0 ? 1 : 0
 
-  security_group_id = "${aws_security_group.example.id}"
+  security_group_id = aws_security_group.example.id
   type              = "ingress"
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
-  cidr_blocks       = ["${var.ssh_cidr_blocks}"]
+  cidr_blocks       = var.ssh_cidr_blocks
 }
