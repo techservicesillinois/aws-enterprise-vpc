@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - use for_each instead of count
 - rdns-forwarder: use ec2_metadata_facts instead of deprecated alias ec2_facts
 
+## Fixed
+- vpc/rdns: avoid leaving VPC with no associated DHCP options set when reverting to Option 1
+
 
 ## [0.8.2] - 2018-11-02
 

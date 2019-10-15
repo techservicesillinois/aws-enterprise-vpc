@@ -55,7 +55,7 @@ resource "aws_vpc_dhcp_options" "dhcp_option2" {
 }
 
 # associate the DHCP Options Set with your VPC
-resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
+resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option2" {
   vpc_id          = aws_vpc.vpc.id
   dhcp_options_id = aws_vpc_dhcp_options.dhcp_option2.id
 }
@@ -122,7 +122,7 @@ resource "aws_vpc_dhcp_options" "dhcp_option3" {
 }
 
 # associate the DHCP Options Set with your VPC
-resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
+resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option3" {
   vpc_id          = aws_vpc.vpc.id
   dhcp_options_id = aws_vpc_dhcp_options.dhcp_option3.id
 }
