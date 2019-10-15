@@ -252,8 +252,8 @@ resource "null_resource" "vpn2" {
 # accept the specified VPC Peering Connections
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {
-  count                     = length(var.pcx_ids)
-  vpc_peering_connection_id = var.pcx_ids[count.index]
+  for_each                  = toset(var.pcx_ids)
+  vpc_peering_connection_id = each.value
   auto_accept               = true
 }
 
@@ -261,7 +261,7 @@ resource "aws_vpc_peering_connection_accepter" "pcx" {
 # pcx routes successfully on the first try
 resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
   triggers = {
-    t = join("",aws_vpc_peering_connection_accepter.pcx[*].id)
+    t = join("",values(aws_vpc_peering_connection_accepter.pcx)[*].id)
   }
 
   # You may safely comment out this provisioner block if your workstation does

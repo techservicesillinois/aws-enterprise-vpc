@@ -44,11 +44,11 @@ variable "dummy_depends_on" {
   default = ""
 }
 
-resource "null_resource" "dummy_depends_on" {
-  triggers = {
-    t = var.dummy_depends_on
-  }
-}
+#resource "null_resource" "dummy_depends_on" {
+#  triggers = {
+#    t = var.dummy_depends_on
+#  }
+#}
 
 variable "endpoint_ids" {
   description = "Optional list of Gateway VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
@@ -124,7 +124,7 @@ module "subnet" {
   cidr_block              = var.cidr_block
   availability_zone       = var.availability_zone
   pcx_ids                 = var.pcx_ids
-  dummy_depends_on        = null_resource.dummy_depends_on.id
+  dummy_depends_on        = var.dummy_depends_on
   endpoint_ids            = var.endpoint_ids
   endpoint_count          = var.endpoint_count
   map_public_ip_on_launch = false

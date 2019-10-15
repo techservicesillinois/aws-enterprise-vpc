@@ -35,6 +35,12 @@ variable "dummy_depends_on" {
   default = ""
 }
 
+resource "null_resource" "dummy_depends_on" {
+  triggers = {
+    t = var.dummy_depends_on
+  }
+}
+
 variable "tags" {
   description = "Optional custom tags for all taggable resources"
   type        = map
@@ -52,8 +58,6 @@ variable "tags_route_table" {
   type        = map
   default     = {}
 }
-
-#resource "null_resource" "dummy_depends_on" { triggers = { t = var.dummy_depends_on }}
 
 ## Outputs
 
@@ -107,27 +111,27 @@ resource "aws_route_table_association" "rtb_assoc" {
 # routes for VPC Peering Connections (if any)
 
 data "aws_vpc_peering_connection" "pcx" {
-  count = length(var.pcx_ids)
+  for_each = toset(var.pcx_ids)
 
-  #id = var.pcx_ids[count.index]
-  #depends_on = ["null_resource.dummy_depends_on"]
+  #id = each.value
+  #depends_on = [null_resource.dummy_depends_on]
 
-  # As of Terraform 0.9.1, using depends_on here results in rebuilding the
-  # aws_route every single run even if nothing has changed.  Work around by
-  # embedding the dependency within id instead.
-  id = replace(var.pcx_ids[count.index],var.dummy_depends_on,var.dummy_depends_on)
+  # As of TF 0.12.9, using depends_on here results in failures:
+  # https://github.com/hashicorp/terraform/issues/22908
+  # Work around by embedding the dependency within id instead.
+  id = null_resource.dummy_depends_on.id != "" ? each.value : null
 }
 
 resource "aws_route" "pcx" {
   # note: tags not supported
-  count = length(var.pcx_ids)
+  for_each = toset(var.pcx_ids)
 
   #route_table_id = aws_route_table.rtb.id
   route_table_id = var.rtb_id
 
   # pick whichever CIDR block (requester or accepter) isn't _our_ CIDR block
-  destination_cidr_block    = replace(data.aws_vpc_peering_connection.pcx[count.index].peer_cidr_block, data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx[count.index].cidr_block)
-  vpc_peering_connection_id = data.aws_vpc_peering_connection.pcx[count.index].id
+  destination_cidr_block    = replace(data.aws_vpc_peering_connection.pcx[each.value].peer_cidr_block, data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx[each.value].cidr_block)
+  vpc_peering_connection_id = data.aws_vpc_peering_connection.pcx[each.value].id
 }
 
 # routes for Gateway VPC Endpoints (if any)
