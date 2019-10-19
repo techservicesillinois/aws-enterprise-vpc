@@ -124,18 +124,9 @@ module "subnet" {
   endpoint_ids            = var.endpoint_ids
   endpoint_ids_keys       = var.endpoint_ids_keys
   map_public_ip_on_launch = false
-  rtb_id                  = aws_route_table.rtb.id
   tags                    = var.tags
   tags_subnet             = var.tags_subnet
   tags_route_table        = var.tags_route_table
-}
-
-resource "aws_route_table" "rtb" {
-  tags = merge(var.tags, {
-    Name = "${var.name}-rtb"
-  }, var.tags_route_table)
-
-  vpc_id = var.vpc_id
 }
 
 # default route (only if nat_gateway_id is provided)

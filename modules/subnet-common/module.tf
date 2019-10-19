@@ -25,11 +25,12 @@ variable "endpoint_ids" { type = map(string) }
 # workaround for https://github.com/hashicorp/terraform/issues/22561
 variable "endpoint_ids_keys" { type = list(string) }
 
-variable map_public_ip_on_launch { type = bool }
+variable "map_public_ip_on_launch" { type = bool }
 
-# workaround for https://github.com/hashicorp/terraform/issues/11453: have each subclass create its own rtb
-#variable propagating_vgws { type = list(string), default = [] }
-variable rtb_id { type = string }
+variable "propagating_vgws" {
+  type    = list(string)
+  default = []
+}
 
 # workaround for https://github.com/hashicorp/terraform/issues/10462
 variable "dummy_depends_on" {
@@ -68,8 +69,7 @@ output "id" {
 }
 
 output "route_table_id" {
-  #value = aws_route_table.rtb.id
-  value = var.rtb_id
+  value = aws_route_table.rtb.id
 }
 
 ## Resources
@@ -93,21 +93,19 @@ resource "aws_subnet" "subnet" {
   vpc_id                  = var.vpc_id
 }
 
-#resource "aws_route_table" "rtb" {
-#  tags = merge(var.tags, {
-#    Name = "${var.name}-rtb"
-#  }, var.tags_route_table)
-#
-#  vpc_id = var.vpc_id
-#  propagating_vgws = var.propagating_vgws
-#}
+resource "aws_route_table" "rtb" {
+  tags = merge(var.tags, {
+    Name = "${var.name}-rtb"
+  }, var.tags_route_table)
+
+  vpc_id           = var.vpc_id
+  propagating_vgws = var.propagating_vgws
+}
 
 resource "aws_route_table_association" "rtb_assoc" {
   # note: tags not supported
-  subnet_id = aws_subnet.subnet.id
-
-  #route_table_id = aws_route_table.rtb.id
-  route_table_id = var.rtb_id
+  subnet_id      = aws_subnet.subnet.id
+  route_table_id = aws_route_table.rtb.id
 }
 
 # routes for VPC Peering Connections (if any)
@@ -128,8 +126,7 @@ resource "aws_route" "pcx" {
   # note: tags not supported
   for_each = toset(var.pcx_ids)
 
-  #route_table_id = aws_route_table.rtb.id
-  route_table_id = var.rtb_id
+  route_table_id = aws_route_table.rtb.id
 
   # pick whichever CIDR block (requester or accepter) isn't _our_ CIDR block
   destination_cidr_block    = replace(data.aws_vpc_peering_connection.pcx[each.value].peer_cidr_block, data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx[each.value].cidr_block)
@@ -146,6 +143,5 @@ resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
   #vpc_endpoint_id = each.value
   vpc_endpoint_id = var.endpoint_ids[each.value]
 
-  #route_table_id = aws_route_table.rtb.id
-  route_table_id = var.rtb_id
+  route_table_id = aws_route_table.rtb.id
 }
