@@ -50,17 +50,18 @@ variable "dummy_depends_on" {
 #  }
 #}
 
+# map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_ids" {
-  description = "Optional list of Gateway VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
-  type        = list(string)
-  default     = []
+  description = "Optional map of Gateway VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
+  type        = map(string)
+  default     = {}
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/4149
-variable "endpoint_count" {
-  description = "number of elements in endpoint_ids"
-  type        = number
-  default     = 0
+# workaround for https://github.com/hashicorp/terraform/issues/22561
+variable "endpoint_ids_keys" {
+  description = "list of keys in endpoint_ids"
+  type        = list(string)
+  default     = []
 }
 
 variable "nat_gateway_id" {
@@ -121,7 +122,7 @@ module "subnet" {
   pcx_ids                 = var.pcx_ids
   dummy_depends_on        = var.dummy_depends_on
   endpoint_ids            = var.endpoint_ids
-  endpoint_count          = var.endpoint_count
+  endpoint_ids_keys       = var.endpoint_ids_keys
   map_public_ip_on_launch = false
   rtb_id                  = aws_route_table.rtb.id
   tags                    = var.tags

@@ -3,8 +3,7 @@
 #
 # Copyright (c) 2018 Board of Trustees University of Illinois
 
-# Hint: use `aws ec2 describe-vpc-endpoint-services` to find service names if
-# the lists below are out of date.
+# Hint: use `aws ec2 describe-vpc-endpoint-services` to find more service names
 
 locals {
   # Gateway VPC Endpoints, enabled by default
@@ -31,30 +30,30 @@ locals {
   interface_vpc_endpoint_subnet_ids = [module.private1-a-net.id, module.private1-b-net.id]
 
   # derived values used in main.tf
-  gateway_vpc_endpoint_count = length(local.gateway_vpc_endpoint_service_names)
-  gateway_vpc_endpoint_ids   = aws_vpc_endpoint.gateway[*].id
+  gateway_vpc_endpoint_ids      = { for k in local.gateway_vpc_endpoint_service_names : k => aws_vpc_endpoint.gateway[k].id }
+  gateway_vpc_endpoint_ids_keys = local.gateway_vpc_endpoint_service_names
 }
 
 # create Gateway VPC Endpoints (if desired)
 
 resource "aws_vpc_endpoint" "gateway" {
-  count = length(local.gateway_vpc_endpoint_service_names)
+  for_each = toset(local.gateway_vpc_endpoint_service_names)
 
   vpc_id            = aws_vpc.vpc.id
   vpc_endpoint_type = "Gateway"
-  service_name      = local.gateway_vpc_endpoint_service_names[count.index]
+  service_name      = each.value
 }
 
 # create Interface VPC Endpoints (if desired)
 
 resource "aws_vpc_endpoint" "interface" {
-  count = length(local.interface_vpc_endpoint_service_names)
+  for_each = toset(local.interface_vpc_endpoint_service_names)
 
   vpc_id              = aws_vpc.vpc.id
   vpc_endpoint_type   = "Interface"
-  service_name        = local.interface_vpc_endpoint_service_names[count.index]
+  service_name        = each.value
   private_dns_enabled = true
-  security_group_ids  = aws_security_group.endpoints[*].id
+  security_group_ids  = [aws_security_group.endpoints[0].id]
   subnet_ids          = local.interface_vpc_endpoint_subnet_ids
 }
 

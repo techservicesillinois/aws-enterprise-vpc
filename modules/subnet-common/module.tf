@@ -18,10 +18,12 @@ variable "name" { type = string }
 variable "cidr_block" { type = string }
 variable "availability_zone" { type = string }
 variable "pcx_ids" { type = list(string) }
-variable "endpoint_ids" { type = list(string) }
 
-# workaround for https://github.com/hashicorp/terraform/issues/4149
-variable "endpoint_count" { type = number }
+# map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
+variable "endpoint_ids" { type = map(string) }
+
+# workaround for https://github.com/hashicorp/terraform/issues/22561
+variable "endpoint_ids_keys" { type = list(string) }
 
 variable map_public_ip_on_launch { type = bool }
 
@@ -138,10 +140,11 @@ resource "aws_route" "pcx" {
 
 resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
   # note: tags not supported
-  #count = length(var.endpoint_ids)
-  count = var.endpoint_count
+  #for_each = var.endpoint_ids
+  for_each = toset(var.endpoint_ids_keys)
 
-  vpc_endpoint_id = var.endpoint_ids[count.index]
+  #vpc_endpoint_id = each.value
+  vpc_endpoint_id = var.endpoint_ids[each.value]
 
   #route_table_id = aws_route_table.rtb.id
   route_table_id = var.rtb_id

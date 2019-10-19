@@ -291,8 +291,8 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 # applicable).  Note that each type of subnet uses a separate Terraform module
 # which accepts slightly different parameters.
 #
-# You can omit endpoint_ids, endpoint_count, and nat_gateway_id if you don't
-# want your subnets to use those things.
+# You can omit endpoint_ids and/or nat_gateway_id if you don't want your
+# subnets to use those things.
 
 module "public1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.9"
@@ -304,7 +304,7 @@ module "public1-a-net" {
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  endpoint_count      = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys   = local.gateway_vpc_endpoint_ids_keys
   internet_gateway_id = aws_internet_gateway.igw.id
 }
 
@@ -318,7 +318,7 @@ module "public1-b-net" {
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  endpoint_count      = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys   = local.gateway_vpc_endpoint_ids_keys
   internet_gateway_id = aws_internet_gateway.igw.id
 }
 
@@ -332,7 +332,7 @@ module "campus1-a-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_count    = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   vpn_gateway_id    = aws_vpn_gateway.vgw.id
   nat_gateway_id    = module.nat-a.id
 }
@@ -347,7 +347,7 @@ module "campus1-b-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_count    = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   vpn_gateway_id    = aws_vpn_gateway.vgw.id
   nat_gateway_id    = module.nat-b.id
 }
@@ -362,7 +362,7 @@ module "private1-a-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_count    = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   nat_gateway_id    = module.nat-a.id
 }
 
@@ -376,6 +376,6 @@ module "private1-b-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_count    = local.gateway_vpc_endpoint_count
+  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   nat_gateway_id    = module.nat-b.id
 }
