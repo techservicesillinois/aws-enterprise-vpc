@@ -253,6 +253,7 @@ resource "null_resource" "vpn2" {
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {
   for_each                  = toset(var.pcx_ids)
+  tags                      = {}
   vpc_peering_connection_id = each.value
   auto_accept               = true
 }

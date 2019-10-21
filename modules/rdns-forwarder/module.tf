@@ -88,6 +88,12 @@ variable "tags_security_group" {
   default     = {}
 }
 
+variable "tags_iam_role" {
+  description = "Optional custom tags for aws_iam_role resource"
+  type        = map
+  default     = {}
+}
+
 variable "key_name" {
   description = "Optional Key Pair name (for SSH access)"
   type        = string
@@ -245,7 +251,7 @@ resource "aws_iam_instance_profile" "instance_profile" {
 }
 
 resource "aws_iam_role" "role" {
-  # note: tags not supported
+  tags        = merge(var.tags, var.tags_iam_role)
   name_prefix = "rdns-forwarder-"
 
   assume_role_policy = <<EOF

@@ -80,6 +80,7 @@ resource "aws_security_group" "endpoints" {
 
 # allow all outbound
 resource "aws_security_group_rule" "endpoint_egress" {
+  # note: tags not supported
   count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
   security_group_id = aws_security_group.endpoints[0].id
@@ -92,6 +93,7 @@ resource "aws_security_group_rule" "endpoint_egress" {
 
 # allow inbound only from this VPC
 resource "aws_security_group_rule" "endpoint_ingress" {
+  # note: tags not supported
   count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
   security_group_id = aws_security_group.endpoints[0].id

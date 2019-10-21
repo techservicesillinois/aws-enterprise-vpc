@@ -79,6 +79,12 @@ variable "tags_vpn_connection" {
   default     = {}
 }
 
+variable "tags_cloudwatch_metric_alarm" {
+  description = "Optional custom tags for aws_cloudwatch_metric_alarm resource"
+  type        = map
+  default     = {}
+}
+
 ## Outputs
 
 output "id" {
@@ -123,9 +129,9 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "vpnstatus" {
-  # note: tags not supported
   provider          = aws.vpn_monitor
   count             = var.create_alarm ? 1 : 0
+  tags              = merge(var.tags, var.tags_cloudwatch_metric_alarm)
   alarm_name        = "${aws_vpn_connection.vpn.id} | ${var.name}"
   alarm_description = local.alarm_description
   namespace         = "VPNStatus"

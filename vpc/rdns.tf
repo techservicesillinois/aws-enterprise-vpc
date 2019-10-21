@@ -29,6 +29,7 @@ resource "aws_default_vpc_dhcp_options" "default" {}
 
 # re-associate the default DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc" {
+  # note: tags not supported
   vpc_id          = aws_vpc.vpc.id
   dhcp_options_id = aws_default_vpc_dhcp_options.default.id
 }
@@ -56,6 +57,7 @@ resource "aws_vpc_dhcp_options" "dhcp_option2" {
 
 # associate the DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option2" {
+  # note: tags not supported
   vpc_id          = aws_vpc.vpc.id
   dhcp_options_id = aws_vpc_dhcp_options.dhcp_option2.id
 }
@@ -123,6 +125,7 @@ resource "aws_vpc_dhcp_options" "dhcp_option3" {
 
 # associate the DHCP Options Set with your VPC
 resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option3" {
+  # note: tags not supported
   vpc_id          = aws_vpc.vpc.id
   dhcp_options_id = aws_vpc_dhcp_options.dhcp_option3.id
 }

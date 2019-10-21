@@ -88,6 +88,7 @@ module "cgw_us-east-2" {
 resource "aws_cloudformation_stack" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor"
+  tags     = {}
 
   parameters = {
     # 5-minute interval
@@ -106,4 +107,5 @@ resource "aws_cloudformation_stack" "vpn-monitor" {
 resource "aws_sns_topic" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor-topic"
+  tags     = {}
 }
