@@ -198,7 +198,7 @@ module "vpn1" {
 
 output "vpn1_customer_gateway_configuration" {
   sensitive = true
-  value     = module.vpn1.customer_gateway_configuration_heredoc
+  value     = module.vpn1.customer_gateway_configuration
 }
 
 resource "null_resource" "vpn1" {
@@ -233,7 +233,7 @@ module "vpn2" {
 
 output "vpn2_customer_gateway_configuration" {
   sensitive = true
-  value     = module.vpn2.customer_gateway_configuration_heredoc
+  value     = module.vpn2.customer_gateway_configuration
 }
 
 resource "null_resource" "vpn2" {

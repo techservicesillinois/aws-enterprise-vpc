@@ -12,7 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - requires Terraform 0.12.x (and AWS provider 2.x)
+- generate details.json instead of details.txt
 - vpc.* outputs renamed to vpc_*
+- stop wrapping vpn-connection config output in here-document delimiters
 - use for_each instead of count
 - create aws_route_table in subnet-common instead of subclasses
 - rdns-forwarder: use ec2_metadata_facts instead of deprecated alias ec2_facts

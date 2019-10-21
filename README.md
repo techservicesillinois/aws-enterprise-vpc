@@ -141,13 +141,13 @@ To set up a new workstation:
 
    and generate the detailed output file needed for the following step:
 
-       terraform output > details.txt
+       terraform output -json > details.json
 
 4. Contact Technology Services to enable Enterprise VPC networking features for your VPC:
 
    * Do you need a Core Services VPC peering, VPN connections, or both?
 
-   * Attach the `details.txt` file generated in the previous step.  This contains your AWS account number, your VPC's name, region, ID, and CIDR block, and some additional configuration details (in XML format) for the on-campus side of each VPN connection.
+   * Attach the `details.json` file generated in the previous step.  This contains your AWS account number, your VPC's name, region, ID, and CIDR block, and some additional configuration details (in escaped XML format) for the on-campus side of each VPN connection.
 
 5. If you requested a Core Services VPC peering connection, Technology Services will initiate one and provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
 
