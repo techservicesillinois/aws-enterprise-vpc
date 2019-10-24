@@ -30,7 +30,11 @@ locals {
   interface_vpc_endpoint_subnet_ids = [module.private1-a-net.id, module.private1-b-net.id]
 
   # derived values used in main.tf
-  gateway_vpc_endpoint_ids      = { for k in local.gateway_vpc_endpoint_service_names : k => aws_vpc_endpoint.gateway[k].id }
+  gateway_vpc_endpoint_ids = {
+    for k in local.gateway_vpc_endpoint_service_names :
+    # conditional is needed for clean `terraform destroy` (as of TF 0.12.9)
+    k => (contains(keys(aws_vpc_endpoint.gateway), k) ? aws_vpc_endpoint.gateway[k].id : "")
+  }
   gateway_vpc_endpoint_ids_keys = local.gateway_vpc_endpoint_service_names
 }
 
