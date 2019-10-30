@@ -2,11 +2,11 @@
 #
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
-# AWS region for this VPC, e.g. us-east-2
-region = "us-east-2"
-
 # Your 12-digit AWS account number
 account_id = "999999999999" #FIXME
+
+# AWS region for this VPC, e.g. us-east-2
+region = "us-east-2"
 
 # The short name of your VPC, e.g. "foobar1" if the full name is "aws-foobar1-vpc"
 vpc_short_name = "example" #FIXME

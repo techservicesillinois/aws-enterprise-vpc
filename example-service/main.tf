@@ -26,13 +26,13 @@ terraform {
 
 ## Inputs (specified in terraform.tfvars)
 
-variable "region" {
-  description = "AWS region for this VPC, e.g. us-east-2"
+variable "account_id" {
+  description = "Your 12-digit AWS account number"
   type        = string
 }
 
-variable "account_id" {
-  description = "Your 12-digit AWS account number"
+variable "region" {
+  description = "AWS region for this VPC, e.g. us-east-2"
   type        = string
 }
 

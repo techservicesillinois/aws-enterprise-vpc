@@ -4,3 +4,9 @@
 
 # Your 12-digit AWS account number
 account_id = "999999999999" #FIXME
+
+# Optional custom tags for all taggable resources
+#tags = {
+#  Contact = "example@illinois.edu"
+#}
+

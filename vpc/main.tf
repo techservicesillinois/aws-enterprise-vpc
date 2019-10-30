@@ -40,13 +40,13 @@ data "terraform_remote_state" "global" {
 
 ## Inputs (specified in terraform.tfvars)
 
-variable "region" {
-  description = "AWS region for this VPC, e.g. us-east-2"
+variable "account_id" {
+  description = "Your 12-digit AWS account number"
   type        = string
 }
 
-variable "account_id" {
-  description = "Your 12-digit AWS account number"
+variable "region" {
+  description = "AWS region for this VPC, e.g. us-east-2"
   type        = string
 }
 
@@ -59,6 +59,12 @@ variable "pcx_ids" {
   description = "Optional list of existing VPC Peering Connections (e.g. pcx-abcd1234) to use in routing tables"
   type        = list(string)
   default     = []
+}
+
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = map
+  default     = {}
 }
 
 ## Outputs
@@ -109,9 +115,9 @@ provider "aws" {
 # create the VPC
 
 resource "aws_vpc" "vpc" {
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vpc"
-  }
+  })
 
   # This is the entire IPv4 CIDR block allocated by Technology Services for
   # this Enterprise VPC
@@ -131,9 +137,9 @@ resource "aws_vpc" "vpc" {
 # create the Internet Gateway
 
 resource "aws_internet_gateway" "igw" {
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-igw"
-  }
+  })
 
   vpc_id = aws_vpc.vpc.id
 }
@@ -146,9 +152,9 @@ resource "aws_internet_gateway" "igw" {
 module "nat-a" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.9"
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-nat-a"
-  }
+  })
 
   # this public-facing subnet is defined further down
   public_subnet_id = module.public1-a-net.id
@@ -157,9 +163,9 @@ module "nat-a" {
 module "nat-b" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.9"
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-nat-b"
-  }
+  })
 
   # this public-facing subnet is defined further down
   public_subnet_id = module.public1-b-net.id
@@ -171,9 +177,9 @@ module "nat-b" {
 # Omit this section if you do not need any campus-facing subnets.
 
 resource "aws_vpn_gateway" "vgw" {
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vgw"
-  }
+  })
 
   amazon_side_asn = 64512
   vpc_id          = aws_vpc.vpc.id
@@ -182,6 +188,7 @@ resource "aws_vpn_gateway" "vgw" {
 module "vpn1" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.9"
 
+  tags                = var.tags
   name                = "${var.vpc_short_name}-vpn1"
   vpn_gateway_id      = aws_vpn_gateway.vgw.id
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws1-pub"]
@@ -217,6 +224,7 @@ resource "null_resource" "vpn1" {
 module "vpn2" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.9"
 
+  tags                = var.tags
   name                = "${var.vpc_short_name}-vpn2"
   vpn_gateway_id      = aws_vpn_gateway.vgw.id
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws2-pub"]
@@ -253,7 +261,7 @@ resource "null_resource" "vpn2" {
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {
   for_each                  = toset(var.pcx_ids)
-  tags                      = {}
+  tags                      = var.tags
   vpc_peering_connection_id = each.value
   auto_accept               = true
 }
@@ -298,6 +306,7 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 module "public1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.9"
 
+  tags                = var.tags
   vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-a-net"
   cidr_block          = "192.168.0.0/27" #FIXME
@@ -312,6 +321,7 @@ module "public1-a-net" {
 module "public1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.9"
 
+  tags                = var.tags
   vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-b-net"
   cidr_block          = "192.168.0.32/27" #FIXME
@@ -326,6 +336,7 @@ module "public1-b-net" {
 module "campus1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.9"
 
+  tags              = var.tags
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-a-net"
   cidr_block        = "192.168.0.64/27" #FIXME
@@ -341,6 +352,7 @@ module "campus1-a-net" {
 module "campus1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.9"
 
+  tags              = var.tags
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-b-net"
   cidr_block        = "192.168.0.96/27" #FIXME
@@ -356,6 +368,7 @@ module "campus1-b-net" {
 module "private1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.9"
 
+  tags              = var.tags
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-a-net"
   cidr_block        = "192.168.0.128/27" #FIXME
@@ -370,6 +383,7 @@ module "private1-a-net" {
 module "private1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.9"
 
+  tags              = var.tags
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-b-net"
   cidr_block        = "192.168.0.160/27" #FIXME

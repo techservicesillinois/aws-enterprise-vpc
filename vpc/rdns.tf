@@ -47,9 +47,9 @@ locals {
 
 # create a DHCP Options Set
 resource "aws_vpc_dhcp_options" "dhcp_option2" {
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-dhcp"
-  }
+  })
 
   domain_name_servers = var.core_services_resolvers
   domain_name         = "${var.region}.compute.internal"
@@ -79,9 +79,9 @@ locals {
 module "rdns-a" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-a"
-  }
+  })
 
   instance_type           = "t2.micro"
   core_services_resolvers = var.core_services_resolvers
@@ -99,9 +99,9 @@ module "rdns-a" {
 module "rdns-b" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-b"
-  }
+  })
 
   instance_type           = "t2.micro"
   core_services_resolvers = var.core_services_resolvers
@@ -115,9 +115,9 @@ module "rdns-b" {
 
 # create a DHCP Options Set
 resource "aws_vpc_dhcp_options" "dhcp_option3" {
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-dhcp"
-  }
+  })
 
   domain_name_servers = [module.rdns-a.private_ip, module.rdns-b.private_ip]
   domain_name         = "${var.region}.compute.internal"

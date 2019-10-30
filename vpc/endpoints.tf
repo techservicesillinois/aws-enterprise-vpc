@@ -43,9 +43,9 @@ locals {
 resource "aws_vpc_endpoint" "gateway" {
   for_each = toset(local.gateway_vpc_endpoint_service_names)
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vpce-${each.value}"
-  }
+  })
 
   vpc_id            = aws_vpc.vpc.id
   vpc_endpoint_type = "Gateway"
@@ -57,9 +57,9 @@ resource "aws_vpc_endpoint" "gateway" {
 resource "aws_vpc_endpoint" "interface" {
   for_each = toset(local.interface_vpc_endpoint_service_names)
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vpce-${each.value}"
-  }
+  })
 
   vpc_id              = aws_vpc.vpc.id
   vpc_endpoint_type   = "Interface"
@@ -74,9 +74,9 @@ resource "aws_vpc_endpoint" "interface" {
 resource "aws_security_group" "endpoints" {
   count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vpc-endpoints"
-  }
+  })
 
   name_prefix = "vpc-endpoints-"
   vpc_id      = aws_vpc.vpc.id

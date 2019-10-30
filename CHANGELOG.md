@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - explicitly specify private ASN for aws_vpn_gateway
 - new Interface VPC Endpoint for SNS
 - add tagging to VPC Endpoints, rdns-forwarder IAM role, vpn-connection Alarm
+- optional top-level var.tags
 
 ### Changed
 - requires Terraform 0.12.x (and AWS provider 2.x)

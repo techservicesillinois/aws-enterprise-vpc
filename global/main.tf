@@ -31,6 +31,12 @@ variable "account_id" {
   type        = string
 }
 
+variable "tags" {
+  description = "Optional custom tags for all taggable resources"
+  type        = map
+  default     = {}
+}
+
 ## Outputs
 
 output "customer_gateway_ids" {
@@ -69,6 +75,8 @@ provider "aws" {
 module "cgw_us-east-1" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.9"
 
+  tags = var.tags
+
   providers = {
     aws = "aws.us-east-1"
   }
@@ -76,6 +84,8 @@ module "cgw_us-east-1" {
 
 module "cgw_us-east-2" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.9"
+
+  tags = var.tags
 
   providers = {
     aws = "aws.us-east-2"
@@ -88,7 +98,7 @@ module "cgw_us-east-2" {
 resource "aws_cloudformation_stack" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor"
-  tags     = {}
+  tags     = var.tags
 
   parameters = {
     # 5-minute interval
@@ -107,5 +117,5 @@ resource "aws_cloudformation_stack" "vpn-monitor" {
 resource "aws_sns_topic" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor-topic"
-  tags     = {}
+  tags     = var.tags
 }
