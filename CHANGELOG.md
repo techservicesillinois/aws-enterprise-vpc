@@ -5,23 +5,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+
+
+## [0.9.0] - 2019-10-30
+
 ### Added
 - explicitly specify private ASN for aws_vpn_gateway
 - new Interface VPC Endpoint for SNS
-- add tagging to VPC Endpoints, rdns-forwarder IAM role, vpn-connection Alarm
-- optional top-level var.tags
+- apply tags to more resources: VPC Endpoints, rdns-forwarder IAM role, vpn-connection Alarm
+- optional top-level var.tags in each environment
 
 ### Changed
 - requires Terraform 0.12.x (and AWS provider 2.x)
-- generate details.json instead of details.txt
+- generates details.json instead of details.txt
 - vpc.* outputs renamed to vpc_*
-- stop wrapping vpn-connection config output in here-document delimiters
-- use for_each instead of count
+- vpn-connection config output is no longer wrapped in here-document delimiters
+- use for_each instead of count (for pcx_ids and endpoints)
 - create aws_route_table in subnet-common instead of subclasses
 - rdns-forwarder: use ec2_metadata_facts instead of deprecated alias ec2_facts
 
-## Fixed
-- vpc/rdns: avoid leaving VPC with no associated DHCP options set when reverting to Option 1
+### Fixed
+- vpc/rdns: avoid temporarily leaving VPC with no associated DHCP options set when reverting to Option 1
+
 
 
 ## [0.8.2] - 2018-11-02
@@ -31,15 +36,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - rdns-forwarder: update running v0.8 instances in-place to new GitHub URL
 
 
+
 ## [0.8.1] - 2018-03-07
 
 ### Added
 - prevent accidental destruction of VPC and VPN connections
 - all modules now accept input variables for common and per-resource custom tags
-- add support for Interface VPC Endpoints (disabled by default)
+- support Interface VPC Endpoints (disabled by default)
 
 ### Changed
 - refactor VPC Endpoints from vpc/main.tf to separate vpc/endpoints.tf
+
 
 
 ## [0.8.0] - 2018-02-01
