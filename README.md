@@ -275,6 +275,8 @@ If you find yourself in this situation, here is a set of AWS CLI commands (using
 ## Versioning
 -------------
 
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).  Noteworthy changes in each release are documented in [`CHANGELOG.md`](CHANGELOG.md)
+
 MAJOR.MINOR.PATCH versions of this repository are immutable releases tracked with git tags, e.g. `vX.Y.Z`.
 
 MAJOR.MINOR versions of this repository are tracked as git branches, e.g. `vX.Y`.  These are mutable, but only for non-breaking changes (once `vX.Y.0` has been released).
@@ -284,6 +286,8 @@ All [module source paths](https://www.terraform.io/docs/modules/sources.html) us
 What this means (using hypothetical version numbers) is that if you base your own live IaC on the example environment code from release `v1.2.3`, and then re-run it in the future after a `terraform get -update`,
 * You will automatically receive any module changes released as `v1.2.4` (which should be safe), because they appear on the `v1.2` branch.
 * You will _not_ automatically receive any module changes released as `v1.3.*` or `v2.0.*` (which might be incompatible with your usage and/or involve refactoring that could cause Terraform to unexpectedly destroy and recreate existing resources).
+
+Upgrading existing deployments to a new MAJOR.MINOR version is discussed in [`UPGRADING.md`](UPGRADING.md)
 
 
 
