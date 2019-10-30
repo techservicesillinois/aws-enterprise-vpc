@@ -262,7 +262,7 @@ resource "aws_vpc_peering_connection_accepter" "pcx" {
 # pcx routes successfully on the first try
 resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
   triggers = {
-    t = join("",values(aws_vpc_peering_connection_accepter.pcx)[*].id)
+    t = join("", values(aws_vpc_peering_connection_accepter.pcx)[*].id)
   }
 
   # You may safely comment out this provisioner block if your workstation does
@@ -300,7 +300,7 @@ module "public1-a-net" {
 
   vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-a-net"
-  cidr_block          = "192.168.0.0/27"                                          #FIXME
+  cidr_block          = "192.168.0.0/27" #FIXME
   availability_zone   = "${var.region}a"
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
@@ -314,7 +314,7 @@ module "public1-b-net" {
 
   vpc_id              = aws_vpc.vpc.id
   name                = "${var.vpc_short_name}-public1-b-net"
-  cidr_block          = "192.168.0.32/27"                                         #FIXME
+  cidr_block          = "192.168.0.32/27" #FIXME
   availability_zone   = "${var.region}b"
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
@@ -328,7 +328,7 @@ module "campus1-a-net" {
 
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-a-net"
-  cidr_block        = "192.168.0.64/27"                                         #FIXME
+  cidr_block        = "192.168.0.64/27" #FIXME
   availability_zone = "${var.region}a"
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
@@ -343,7 +343,7 @@ module "campus1-b-net" {
 
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-b-net"
-  cidr_block        = "192.168.0.96/27"                                         #FIXME
+  cidr_block        = "192.168.0.96/27" #FIXME
   availability_zone = "${var.region}b"
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
@@ -358,7 +358,7 @@ module "private1-a-net" {
 
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-a-net"
-  cidr_block        = "192.168.0.128/27"                                        #FIXME
+  cidr_block        = "192.168.0.128/27" #FIXME
   availability_zone = "${var.region}a"
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
@@ -372,7 +372,7 @@ module "private1-b-net" {
 
   vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-b-net"
-  cidr_block        = "192.168.0.160/27"                                        #FIXME
+  cidr_block        = "192.168.0.160/27" #FIXME
   availability_zone = "${var.region}b"
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id

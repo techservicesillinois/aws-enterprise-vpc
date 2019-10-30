@@ -151,7 +151,7 @@ data "template_file" "user_data" {
 
   vars = {
     vpc_cidr   = data.aws_vpc.selected.cidr_block
-    amazon_dns = cidrhost(data.aws_vpc.selected.cidr_block,2)
+    amazon_dns = cidrhost(data.aws_vpc.selected.cidr_block, 2)
 
     # format as YAML list
     forwarders_list          = join("\n", formatlist("  - %s", var.core_services_resolvers))
@@ -236,8 +236,8 @@ resource "aws_security_group_rule" "allow_icmp" {
   # note: tags not supported
   security_group_id = aws_security_group.rdns.id
   type              = "ingress"
-  from_port         = "-1"                                    # ICMP type number
-  to_port           = "-1"                                    # ICMP code
+  from_port         = "-1" # ICMP type number
+  to_port           = "-1" # ICMP code
   protocol          = "icmp"
   cidr_blocks       = [data.aws_vpc.selected.cidr_block]
 }

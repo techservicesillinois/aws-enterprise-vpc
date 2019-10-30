@@ -34,7 +34,7 @@ variable "propagating_vgws" {
 
 # workaround for https://github.com/hashicorp/terraform/issues/10462
 variable "dummy_depends_on" {
-  type = string
+  type    = string
   default = ""
 }
 
