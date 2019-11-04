@@ -4,7 +4,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.9"
+  required_version = ">= 0.12.13"
 
   required_providers {
     aws = ">= 2.32"
@@ -21,9 +21,6 @@ variable "pcx_ids" { type = list(string) }
 
 # map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_ids" { type = map(string) }
-
-# workaround for https://github.com/hashicorp/terraform/issues/22561
-variable "endpoint_ids_keys" { type = list(string) }
 
 variable "map_public_ip_on_launch" { type = bool }
 
@@ -137,11 +134,8 @@ resource "aws_route" "pcx" {
 
 resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
   # note: tags not supported
-  #for_each = var.endpoint_ids
-  for_each = toset(var.endpoint_ids_keys)
+  for_each = var.endpoint_ids
 
-  #vpc_endpoint_id = each.value
-  vpc_endpoint_id = var.endpoint_ids[each.value]
-
-  route_table_id = aws_route_table.rtb.id
+  vpc_endpoint_id = each.value
+  route_table_id  = aws_route_table.rtb.id
 }

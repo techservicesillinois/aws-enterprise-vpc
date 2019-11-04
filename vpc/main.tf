@@ -4,7 +4,7 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.12.9"
+  required_version = "~> 0.12.13"
 
   required_providers {
     aws  = "~> 2.32"
@@ -314,7 +314,6 @@ module "public1-a-net" {
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys   = local.gateway_vpc_endpoint_ids_keys
   internet_gateway_id = aws_internet_gateway.igw.id
 }
 
@@ -329,7 +328,6 @@ module "public1-b-net" {
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys   = local.gateway_vpc_endpoint_ids_keys
   internet_gateway_id = aws_internet_gateway.igw.id
 }
 
@@ -344,7 +342,6 @@ module "campus1-a-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   vpn_gateway_id    = aws_vpn_gateway.vgw.id
   nat_gateway_id    = module.nat-a.id
 }
@@ -360,7 +357,6 @@ module "campus1-b-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   vpn_gateway_id    = aws_vpn_gateway.vgw.id
   nat_gateway_id    = module.nat-b.id
 }
@@ -376,7 +372,6 @@ module "private1-a-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   nat_gateway_id    = module.nat-a.id
 }
 
@@ -391,6 +386,5 @@ module "private1-b-net" {
   pcx_ids           = var.pcx_ids
   dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids      = local.gateway_vpc_endpoint_ids
-  endpoint_ids_keys = local.gateway_vpc_endpoint_ids_keys
   nat_gateway_id    = module.nat-b.id
 }

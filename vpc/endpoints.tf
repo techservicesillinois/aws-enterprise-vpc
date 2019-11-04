@@ -35,7 +35,6 @@ locals {
     # conditional is needed for clean `terraform destroy` (as of TF 0.12.9)
     k => (contains(keys(aws_vpc_endpoint.gateway), k) ? aws_vpc_endpoint.gateway[k].id : "")
   }
-  gateway_vpc_endpoint_ids_keys = local.gateway_vpc_endpoint_service_names
 }
 
 # create Gateway VPC Endpoints (if desired)

@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.9"
+  required_version = ">= 0.12.13"
 
   required_providers {
     aws = ">= 2.32"
@@ -57,13 +57,6 @@ variable "endpoint_ids" {
   default     = {}
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/22561
-variable "endpoint_ids_keys" {
-  description = "list of keys in endpoint_ids"
-  type        = list(string)
-  default     = []
-}
-
 variable "internet_gateway_id" {
   description = "Internet Gateway to use for default route, e.g. igw-abcd1234"
   type        = string
@@ -114,7 +107,6 @@ module "subnet" {
   pcx_ids                 = var.pcx_ids
   dummy_depends_on        = var.dummy_depends_on
   endpoint_ids            = var.endpoint_ids
-  endpoint_ids_keys       = var.endpoint_ids_keys
   map_public_ip_on_launch = true
   tags                    = var.tags
   tags_subnet             = var.tags_subnet
