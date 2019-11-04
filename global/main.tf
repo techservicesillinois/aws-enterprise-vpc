@@ -95,6 +95,7 @@ module "cgw_us-east-2" {
 # Optional CloudWatch monitoring for VPN connections (deployed in one region
 # but monitors VPN connections in all regions): see
 # https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
+
 resource "aws_cloudformation_stack" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor"
@@ -118,4 +119,57 @@ resource "aws_sns_topic" "vpn-monitor" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor-topic"
   tags     = var.tags
+}
+
+# Optional IAM Role (regionless) which can be used to publish Flow Logs to
+# CloudWatch Logs, created here for convenience: see
+# https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-cwl.html
+
+resource "aws_iam_role" "flow_logs_role" {
+  provider    = "aws.us-east-2"
+  tags        = var.tags
+  name_prefix = "flow-logs-cwl-"
+  description = "Use this role to create a Flow Log that publishes to CloudWatch Logs"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "vpc-flow-logs.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "flow_logs_role_inline1" {
+  # note: tags not supported
+  provider    = "aws.us-east-2"
+  name_prefix = "flow-logs-cwl-"
+  role        = aws_iam_role.flow_logs_role.name
+
+  policy = <<EOT
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOT
 }

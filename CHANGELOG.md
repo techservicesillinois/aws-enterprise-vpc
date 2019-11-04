@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- convenient IAM Role for creating Flow Logs
+
 
 
 ## [0.9.0] - 2019-10-30
