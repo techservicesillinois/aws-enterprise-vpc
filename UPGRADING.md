@@ -1,10 +1,10 @@
 # Upgrading Hints
 
-**WARNING**: upgrading existing IaC deployments to a new version of aws-enterprise-vpc in place is non-trivial, and may disrupt services in your VPC!
+**WARNING**: upgrading existing IaC deployments to a new version of `aws-enterprise-vpc` in place is non-trivial, and may disrupt services in your VPC!
 
-The safer and more comfortable alternative is to create a new VPC (see "Multiple VPCs" in [README.md]), migrate your applications, and then decommission the old VPC.
+The safer and more comfortable alternative is to create a new VPC (see "Multiple VPCs" in [README.md](README.md)), migrate your applications, and then decommission the old VPC.
 
-In practice, in-place upgrades are often achievable _if_ you are careful and understand what you're doing, but this requires significantly more expertise than the original deployment.  This document is a "word to the wise", not a reliable formula.
+In practice, in-place upgrades are often achievable _if_ you are careful and understand what you're doing, but this requires significantly more operator expertise than the original deployment.  **This document is a "word to the wise", not a foolproof recipe.**
 
 The basic idea:
   1. Before doing anything else, re-run `terraform plan` in each environment; there should be no changes.
@@ -17,7 +17,7 @@ The basic idea:
 
 
 
-## from 0.8 to 0.9
+## from v0.8 to v0.9
 
 This migration is tricky because several resources have changed from `count` to `for_each`.  Note that some of these will need to be fixed before you can even run `terraform plan` successfully, e.g. to resolve "Error: Invalid function argument" due to "aws_vpc_endpoint.gateway is tuple with 2 elements"
 
@@ -25,73 +25,93 @@ This migration is tricky because several resources have changed from `count` to 
 
 * refactor rtb resources
 
-    terraform state mv module.public1-a-net.aws_route_table.rtb module.public1-a-net.module.subnet.aws_route_table.rtb
-    terraform state mv module.public1-b-net.aws_route_table.rtb module.public1-b-net.module.subnet.aws_route_table.rtb
-    terraform state mv module.campus1-a-net.aws_route_table.rtb module.campus1-a-net.module.subnet.aws_route_table.rtb
-    terraform state mv module.campus1-b-net.aws_route_table.rtb module.campus1-b-net.module.subnet.aws_route_table.rtb
-    terraform state mv module.private1-a-net.aws_route_table.rtb module.private1-a-net.module.subnet.aws_route_table.rtb
-    terraform state mv module.private1-b-net.aws_route_table.rtb module.private1-b-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.public1-a-net.aws_route_table.rtb module.public1-a-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.public1-b-net.aws_route_table.rtb module.public1-b-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.campus1-a-net.aws_route_table.rtb module.campus1-a-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.campus1-b-net.aws_route_table.rtb module.campus1-b-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.private1-a-net.aws_route_table.rtb module.private1-a-net.module.subnet.aws_route_table.rtb
+        terraform state mv module.private1-b-net.aws_route_table.rtb module.private1-b-net.module.subnet.aws_route_table.rtb
 
   and dummy_depends_on resources (which are harmless but clutter up the plan)
 
-    terraform state mv module.public1-a-net.null_resource.dummy_depends_on module.public1-a-net.module.subnet.null_resource.dummy_depends_on
-    terraform state mv module.public1-b-net.null_resource.dummy_depends_on module.public1-b-net.module.subnet.null_resource.dummy_depends_on
-    terraform state mv module.campus1-a-net.null_resource.dummy_depends_on module.campus1-a-net.module.subnet.null_resource.dummy_depends_on
-    terraform state mv module.campus1-b-net.null_resource.dummy_depends_on module.campus1-b-net.module.subnet.null_resource.dummy_depends_on
-    terraform state mv module.private1-a-net.null_resource.dummy_depends_on module.private1-a-net.module.subnet.null_resource.dummy_depends_on
-    terraform state mv module.private1-b-net.null_resource.dummy_depends_on module.private1-b-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.public1-a-net.null_resource.dummy_depends_on module.public1-a-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.public1-b-net.null_resource.dummy_depends_on module.public1-b-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.campus1-a-net.null_resource.dummy_depends_on module.campus1-a-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.campus1-b-net.null_resource.dummy_depends_on module.campus1-b-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.private1-a-net.null_resource.dummy_depends_on module.private1-a-net.module.subnet.null_resource.dummy_depends_on
+        terraform state mv module.private1-b-net.null_resource.dummy_depends_on module.private1-b-net.module.subnet.null_resource.dummy_depends_on
 
 * refactor from count to for_each (NB: replace "pcx-CHANGEME" appropriately)
 
-    terraform state mv aws_vpc_endpoint.gateway[0] 'aws_vpc_endpoint.gateway["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv aws_vpc_endpoint.gateway[1] 'aws_vpc_endpoint.gateway["com.amazonaws.us-east-2.s3"]'
+        terraform state mv aws_vpc_endpoint.gateway[0] 'aws_vpc_endpoint.gateway["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv aws_vpc_endpoint.gateway[1] 'aws_vpc_endpoint.gateway["com.amazonaws.us-east-2.s3"]'
 
-    terraform state mv module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
-    terraform state mv module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.public1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.public1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
 
-    terraform state mv module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
-    terraform state mv module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.campus1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.campus1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
 
-    terraform state mv module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
-    terraform state mv module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
-    terraform state mv module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.private1-a-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
+        terraform state mv module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[0] 'module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.dynamodb"]'
+        terraform state mv module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta[1] 'module.private1-b-net.module.subnet.aws_vpc_endpoint_route_table_association.endpoint_rta["com.amazonaws.us-east-2.s3"]'
 
-    terraform state mv aws_vpc_peering_connection_accepter.pcx[0] 'aws_vpc_peering_connection_accepter.pcx["pcx-CHANGEME"]'
+        terraform state mv aws_vpc_peering_connection_accepter.pcx[0] 'aws_vpc_peering_connection_accepter.pcx["pcx-CHANGEME"]'
 
-    terraform state mv module.public1-a-net.module.subnet.aws_route.pcx[0] 'module.public1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
-    terraform state mv module.public1-b-net.module.subnet.aws_route.pcx[0] 'module.public1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
-    terraform state mv module.campus1-a-net.module.subnet.aws_route.pcx[0] 'module.campus1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
-    terraform state mv module.campus1-b-net.module.subnet.aws_route.pcx[0] 'module.campus1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
-    terraform state mv module.private1-a-net.module.subnet.aws_route.pcx[0] 'module.private1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
-    terraform state mv module.private1-b-net.module.subnet.aws_route.pcx[0] 'module.private1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.public1-a-net.module.subnet.aws_route.pcx[0] 'module.public1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.public1-b-net.module.subnet.aws_route.pcx[0] 'module.public1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.campus1-a-net.module.subnet.aws_route.pcx[0] 'module.campus1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.campus1-b-net.module.subnet.aws_route.pcx[0] 'module.campus1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.private1-a-net.module.subnet.aws_route.pcx[0] 'module.private1-a-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
+        terraform state mv module.private1-b-net.module.subnet.aws_route.pcx[0] 'module.private1-b-net.module.subnet.aws_route.pcx["pcx-CHANGEME"]'
 
 * Unfortunately [https://github.com/hashicorp/terraform/issues/22301] prevents refactoring with `terraform state mv` commands in the case where there is only a single instance, which for a typical VPC inclues the pcx-related resources above.  As of this writing, the only seamless workaround is to perform manual surgery on the state file:
 
-    terraform state pull > DANGER.tfstate
+  1. `terraform state pull > DANGER.tfstate`
 
-    cp DANGER.tfstate DANGER.tfstate.backup
+  2. `cp DANGER.tfstate DANGER.tfstate.backup`
 
-    vim DANGER.tfstate
+  3. `vim DANGER.tfstate`
 
-      * Locate the stanza corresponding to each resource you need to mv.  Inside the single instance of that resource, immediately above `"schema_version": 0,`, insert the following line:
+     * Locate the stanza corresponding to each resource you need to mv.  Inside the single instance of that resource, immediately above `"schema_version": 0,`, insert the following line:
 
-          "index_key": "pcx-CHANGEME",
+            "index_key": "pcx-CHANGEME",
 
-      * Locate "serial" near the top of the file and increase its value by 1.
+     * Locate `"serial"` near the top of the file and increase its value by 1.
 
-    terraform state push DANGER.tfstate
+  4. `terraform state push DANGER.tfstate`
 
-    terraform plan
+  5. `terraform plan`
 
 * If using rdns option 3,
 
-    terraform state mv aws_vpc_dhcp_options_association.dhcp_assoc aws_vpc_dhcp_options_association.dhcp_assoc_option3
+        terraform state mv aws_vpc_dhcp_options_association.dhcp_assoc aws_vpc_dhcp_options_association.dhcp_assoc_option3
 
   and be careful to replace only one instance at a time!  The easiest way to do this is with a targeted apply, e.g.
 
-    terraform apply -target module.rdns-a
+        terraform apply -target module.rdns-a
+
+
+
+## from v0.7 to v0.8
+
+The challenge here is migrating VPN monitoring from us-east-1 to us-east-2; Terraform gets confused when our configuration specifies a new provider for resources which already exist under a different provider, and plans to create the new resource _without_ destroying the old one (leaving the old one orphaned in the wild).  Our workaround is to rename the old resource to a name which no longer matches anything in the configuration.
+
+NB: since we're creating a new SNS topic, you will also need to manually recreate any desired subscriptions (these are not handled by Terraform).
+
+* global environment:
+
+        terraform state mv module.cgw module.cgw_us-east-2
+
+        terraform state mv aws_cloudformation_stack.vpn-monitor aws_cloudformation_stack.vpn-monitor-OLD
+        terraform state mv aws_sns_topic.vpn-monitor aws_sns_topic.vpn-monitor-OLD
+
+* vpc environment:
+
+        terraform state mv module.vpn1.aws_cloudwatch_metric_alarm.vpnstatus module.vpn1.aws_cloudwatch_metric_alarm.vpnstatus-OLD
+        terraform state mv module.vpn2.aws_cloudwatch_metric_alarm.vpnstatus module.vpn2.aws_cloudwatch_metric_alarm.vpnstatus-OLD
