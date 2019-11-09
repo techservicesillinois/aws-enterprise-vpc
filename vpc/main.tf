@@ -85,6 +85,10 @@ output "vpc_cidr_block" {
   value = aws_vpc.vpc.cidr_block
 }
 
+output "vpc_ipv6_cidr_block" {
+  value = aws_vpc.vpc.ipv6_cidr_block
+}
+
 output "vpc_region" {
   value = var.region
 }
@@ -123,6 +127,9 @@ resource "aws_vpc" "vpc" {
   # this Enterprise VPC
   cidr_block = "192.168.0.0/24" #FIXME
 
+  # Request an Amazon-provided IPv6 CIDR block (/56) for this VPC
+  #assign_generated_ipv6_cidr_block = true
+
   enable_dns_support   = true
   enable_dns_hostnames = true
 
@@ -141,6 +148,13 @@ resource "aws_internet_gateway" "igw" {
     Name = "${var.vpc_short_name}-igw"
   })
 
+  vpc_id = aws_vpc.vpc.id
+}
+
+# create an IPv6 Egress-Only Internet Gateway for private-facing subnets
+
+resource "aws_egress_only_internet_gateway" "eigw" {
+  # note: tags not supported
   vpc_id = aws_vpc.vpc.id
 }
 
@@ -284,8 +298,8 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 # create Subnets
 #
 # Each subnet's cidr_block must be a subset of the overall VPC cidr_block.
-# Subnets do not need to be the same size; you can divide your IP allocation in
-# whatever way best suits your needs.
+# Subnets do not need to be the same size; you can divide your IPv4 allocation
+# in whatever way best suits your needs.
 #
 # Note that you can't resize or renumber existing Subnets in AWS once you
 # create them.  You _can_ delete and re-create them with Terraform by modifying
@@ -300,17 +314,33 @@ resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
 # applicable).  Note that each type of subnet uses a separate Terraform module
 # which accepts slightly different parameters.
 #
-# You can omit endpoint_ids and/or nat_gateway_id if you don't want your
-# subnets to use those things.
+# You may omit ipv6_cidr_block, endpoint_ids, nat_gateway_id, and/or
+# egress_only_gateway_id if you don't want your subnets to use those things.
+
+locals {
+  # calculate first several /64 subnets of our IPv6 CIDR block (or nulls if not
+  # using IPv6)
+  ipv6_subnet_cidrs = [
+    for i in range(4) :
+    (aws_vpc.vpc.ipv6_cidr_block == "" ? null
+      : cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, i)
+    )
+  ]
+}
 
 module "public1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
 
-  tags                = var.tags
+  tags              = var.tags
+  name              = "${var.vpc_short_name}-public1-a-net"
+  cidr_block        = "192.168.0.0/27"           #FIXME
+  ipv6_cidr_block   = local.ipv6_subnet_cidrs[0] # xx00::/64
+  availability_zone = "${var.region}a"
+
+  # should interfaces in this subnet automatically get IPv6 addresses?
+  assign_ipv6_address_on_creation = false
+
   vpc_id              = aws_vpc.vpc.id
-  name                = "${var.vpc_short_name}-public1-a-net"
-  cidr_block          = "192.168.0.0/27" #FIXME
-  availability_zone   = "${var.region}a"
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
@@ -320,11 +350,16 @@ module "public1-a-net" {
 module "public1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
 
-  tags                = var.tags
+  tags              = var.tags
+  name              = "${var.vpc_short_name}-public1-b-net"
+  cidr_block        = "192.168.0.32/27"          #FIXME
+  ipv6_cidr_block   = local.ipv6_subnet_cidrs[1] # xx01::/64
+  availability_zone = "${var.region}b"
+
+  # should interfaces in this subnet automatically get IPv6 addresses?
+  assign_ipv6_address_on_creation = false
+
   vpc_id              = aws_vpc.vpc.id
-  name                = "${var.vpc_short_name}-public1-b-net"
-  cidr_block          = "192.168.0.32/27" #FIXME
-  availability_zone   = "${var.region}b"
   pcx_ids             = var.pcx_ids
   dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
@@ -335,56 +370,70 @@ module "campus1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
 
   tags              = var.tags
-  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-a-net"
   cidr_block        = "192.168.0.64/27" #FIXME
   availability_zone = "${var.region}a"
-  pcx_ids           = var.pcx_ids
-  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
-  endpoint_ids      = local.gateway_vpc_endpoint_ids
-  vpn_gateway_id    = aws_vpn_gateway.vgw.id
-  nat_gateway_id    = module.nat-a.id
+
+  vpc_id           = aws_vpc.vpc.id
+  pcx_ids          = var.pcx_ids
+  dummy_depends_on = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids     = local.gateway_vpc_endpoint_ids
+  vpn_gateway_id   = aws_vpn_gateway.vgw.id
+  nat_gateway_id   = module.nat-a.id
 }
 
 module "campus1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
 
   tags              = var.tags
-  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-campus1-b-net"
   cidr_block        = "192.168.0.96/27" #FIXME
   availability_zone = "${var.region}b"
-  pcx_ids           = var.pcx_ids
-  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
-  endpoint_ids      = local.gateway_vpc_endpoint_ids
-  vpn_gateway_id    = aws_vpn_gateway.vgw.id
-  nat_gateway_id    = module.nat-b.id
+
+  vpc_id           = aws_vpc.vpc.id
+  pcx_ids          = var.pcx_ids
+  dummy_depends_on = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids     = local.gateway_vpc_endpoint_ids
+  vpn_gateway_id   = aws_vpn_gateway.vgw.id
+  nat_gateway_id   = module.nat-b.id
 }
 
 module "private1-a-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
 
   tags              = var.tags
-  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-a-net"
-  cidr_block        = "192.168.0.128/27" #FIXME
+  cidr_block        = "192.168.0.128/27"         #FIXME
+  ipv6_cidr_block   = local.ipv6_subnet_cidrs[2] # xx02::/64
   availability_zone = "${var.region}a"
-  pcx_ids           = var.pcx_ids
-  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
-  endpoint_ids      = local.gateway_vpc_endpoint_ids
-  nat_gateway_id    = module.nat-a.id
+
+  # should interfaces in this subnet automatically get IPv6 addresses?
+  assign_ipv6_address_on_creation = false
+
+  vpc_id                 = aws_vpc.vpc.id
+  pcx_ids                = var.pcx_ids
+  dummy_depends_on       = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids           = local.gateway_vpc_endpoint_ids
+  nat_gateway_id         = module.nat-a.id
+  egress_only_gateway_id = aws_egress_only_internet_gateway.eigw.id
 }
 
 module "private1-b-net" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
 
   tags              = var.tags
-  vpc_id            = aws_vpc.vpc.id
   name              = "${var.vpc_short_name}-private1-b-net"
-  cidr_block        = "192.168.0.160/27" #FIXME
+  cidr_block        = "192.168.0.160/27"         #FIXME
+  ipv6_cidr_block   = local.ipv6_subnet_cidrs[3] # xx03::/64
   availability_zone = "${var.region}b"
-  pcx_ids           = var.pcx_ids
-  dummy_depends_on  = null_resource.wait_for_vpc_peering_connection_accepter.id
-  endpoint_ids      = local.gateway_vpc_endpoint_ids
-  nat_gateway_id    = module.nat-b.id
+
+  # should interfaces in this subnet automatically get IPv6 addresses?
+  assign_ipv6_address_on_creation = false
+
+  vpc_id                 = aws_vpc.vpc.id
+  pcx_ids                = var.pcx_ids
+  dummy_depends_on       = null_resource.wait_for_vpc_peering_connection_accepter.id
+  endpoint_ids           = local.gateway_vpc_endpoint_ids
+  nat_gateway_id         = module.nat-b.id
+  egress_only_gateway_id = aws_egress_only_internet_gateway.eigw.id
 }

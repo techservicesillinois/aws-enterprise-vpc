@@ -58,7 +58,7 @@ variable "endpoint_ids" {
 }
 
 variable "nat_gateway_id" {
-  description = "Optional NAT Gateway to use for default route, e.g. nat-abcdefgh12345678"
+  description = "Optional NAT Gateway to use for IPv4 default route, e.g. nat-abcdefgh12345678"
   type        = string
   default     = ""
 }
@@ -128,9 +128,9 @@ module "subnet" {
   tags_route_table = var.tags_route_table
 }
 
-# default route (only if nat_gateway_id is provided)
+# default routes (if targets provided)
 
-resource "aws_route" "default" {
+resource "aws_route" "ipv4_default" {
   # note: tags not supported
   #count = var.nat_gateway_id == "" ? 0 : 1
   count = var.use_nat_gateway ? 1 : 0

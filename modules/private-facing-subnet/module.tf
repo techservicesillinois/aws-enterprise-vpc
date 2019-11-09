@@ -27,6 +27,12 @@ variable "cidr_block" {
   type        = string
 }
 
+variable "ipv6_cidr_block" {
+  description = "Optional IPv6 CIDR block for this subnet, e.g. 2001:db8::/64"
+  type        = string
+  default     = null
+}
+
 variable "availability_zone" {
   description = "Availability Zone for this subnet, e.g. us-east-2a"
   type        = string
@@ -58,7 +64,7 @@ variable "endpoint_ids" {
 }
 
 variable "nat_gateway_id" {
-  description = "Optional NAT Gateway to use for default route, e.g. nat-abcdefgh12345678"
+  description = "Optional NAT Gateway to use for IPv4 default route, e.g. nat-abcdefgh12345678"
   type        = string
   default     = ""
 }
@@ -68,6 +74,25 @@ variable "use_nat_gateway" {
   description = "set this to false if a NAT gateway is _not_ provided"
   type        = bool
   default     = true
+}
+
+variable "egress_only_gateway_id" {
+  description = "Optional Egress-Only Internet Gateway to use for IPv6 default route, e.g. eigw-abcdefgh12345678"
+  type        = string
+  default     = null
+}
+
+# workaround for https://github.com/hashicorp/terraform/issues/4149
+variable "use_egress_only_gateway" {
+  description = "set this to false if an Egress-Only Internet Gateway is _not_ provided"
+  type        = bool
+  default     = true
+}
+
+variable "assign_ipv6_address_on_creation" {
+  description = "Optional override (defaults to true iff ipv6_cidr_block provided)"
+  type        = bool
+  default     = null
 }
 
 variable "tags" {
@@ -108,22 +133,24 @@ output "cidr_block" {
 module "subnet" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/subnet-common?ref=v0.10"
 
-  vpc_id                  = var.vpc_id
-  name                    = var.name
-  cidr_block              = var.cidr_block
-  availability_zone       = var.availability_zone
-  pcx_ids                 = var.pcx_ids
-  dummy_depends_on        = var.dummy_depends_on
-  endpoint_ids            = var.endpoint_ids
-  map_public_ip_on_launch = false
-  tags                    = var.tags
-  tags_subnet             = var.tags_subnet
-  tags_route_table        = var.tags_route_table
+  vpc_id                          = var.vpc_id
+  name                            = var.name
+  cidr_block                      = var.cidr_block
+  ipv6_cidr_block                 = var.ipv6_cidr_block
+  availability_zone               = var.availability_zone
+  pcx_ids                         = var.pcx_ids
+  dummy_depends_on                = var.dummy_depends_on
+  endpoint_ids                    = var.endpoint_ids
+  map_public_ip_on_launch         = false
+  assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
+  tags                            = var.tags
+  tags_subnet                     = var.tags_subnet
+  tags_route_table                = var.tags_route_table
 }
 
-# default route (only if nat_gateway_id is provided)
+# default routes (if targets provided)
 
-resource "aws_route" "default" {
+resource "aws_route" "ipv4_default" {
   # note: tags not supported
   #count = var.nat_gateway_id == "" ? 0 : 1
   count = var.use_nat_gateway ? 1 : 0
@@ -131,4 +158,14 @@ resource "aws_route" "default" {
   route_table_id         = module.subnet.route_table_id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = var.nat_gateway_id
+}
+
+resource "aws_route" "ipv6_default" {
+  # note: tags not supported
+  #count = var.egress_only_gateway_id == null ? 0 : 1
+  count = var.use_egress_only_gateway ? 1 : 0
+
+  route_table_id              = module.subnet.route_table_id
+  destination_ipv6_cidr_block = "::/0"
+  egress_only_gateway_id      = var.egress_only_gateway_id
 }

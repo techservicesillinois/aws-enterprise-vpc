@@ -294,5 +294,4 @@ Upgrading existing deployments to a new MAJOR.MINOR version is discussed in [`UP
 ## Known Issues
 ---------------
 
-* none
-
+* Terraform cannot remove IPv6 from a subnet once enabled [https://github.com/terraform-providers/terraform-provider-aws/issues/10815]

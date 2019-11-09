@@ -27,6 +27,12 @@ variable "cidr_block" {
   type        = string
 }
 
+variable "ipv6_cidr_block" {
+  description = "Optional IPv6 CIDR block for this subnet, e.g. 2001:db8::/64"
+  type        = string
+  default     = null
+}
+
 variable "availability_zone" {
   description = "Availability Zone for this subnet, e.g. us-east-2a"
   type        = string
@@ -60,6 +66,12 @@ variable "endpoint_ids" {
 variable "internet_gateway_id" {
   description = "Internet Gateway to use for default route, e.g. igw-abcd1234"
   type        = string
+}
+
+variable "assign_ipv6_address_on_creation" {
+  description = "Optional override (defaults to true iff ipv6_cidr_block provided)"
+  type        = bool
+  default     = null
 }
 
 variable "tags" {
@@ -100,24 +112,33 @@ output "cidr_block" {
 module "subnet" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/subnet-common?ref=v0.10"
 
-  vpc_id                  = var.vpc_id
-  name                    = var.name
-  cidr_block              = var.cidr_block
-  availability_zone       = var.availability_zone
-  pcx_ids                 = var.pcx_ids
-  dummy_depends_on        = var.dummy_depends_on
-  endpoint_ids            = var.endpoint_ids
-  map_public_ip_on_launch = true
-  tags                    = var.tags
-  tags_subnet             = var.tags_subnet
-  tags_route_table        = var.tags_route_table
+  vpc_id                          = var.vpc_id
+  name                            = var.name
+  cidr_block                      = var.cidr_block
+  ipv6_cidr_block                 = var.ipv6_cidr_block
+  availability_zone               = var.availability_zone
+  pcx_ids                         = var.pcx_ids
+  dummy_depends_on                = var.dummy_depends_on
+  endpoint_ids                    = var.endpoint_ids
+  map_public_ip_on_launch         = true
+  assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
+  tags                            = var.tags
+  tags_subnet                     = var.tags_subnet
+  tags_route_table                = var.tags_route_table
 }
 
-# default route
+# default routes
 
-resource "aws_route" "default" {
+resource "aws_route" "ipv4_default" {
   # note: tags not supported
   route_table_id         = module.subnet.route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
+}
+
+resource "aws_route" "ipv6_default" {
+  # note: tags not supported
+  route_table_id              = module.subnet.route_table_id
+  destination_ipv6_cidr_block = "::/0"
+  gateway_id                  = var.internet_gateway_id
 }

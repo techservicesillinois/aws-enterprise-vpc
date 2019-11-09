@@ -13,7 +13,7 @@ locals {
   ]
 
   # Interface VPC Endpoints, disabled by default because they create elastic
-  # network interfaces (thus consuming a private IP) on each subnet.  Uncomment
+  # network interfaces (thus consuming an IP) on each chosen subnet.  Uncomment
   # the ones you want to use.
   interface_vpc_endpoint_service_names = [
     #"com.amazonaws.${var.region}.ec2",
@@ -70,6 +70,9 @@ resource "aws_vpc_endpoint" "interface" {
 
 # Security Group for Interface VPC Endpoints (if any)
 
+# note: as of this writing (2019-11-11) Endpoints support IPv4 traffic only,
+# but our SG permits IPv6 anyway in case that changes
+
 resource "aws_security_group" "endpoints" {
   count = length(local.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
 
@@ -92,6 +95,7 @@ resource "aws_security_group_rule" "endpoint_egress" {
   from_port         = 0
   to_port           = 0
   cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
 }
 
 # allow inbound only from this VPC
@@ -105,4 +109,5 @@ resource "aws_security_group_rule" "endpoint_ingress" {
   from_port         = 0
   to_port           = 0
   cidr_blocks       = [aws_vpc.vpc.cidr_block]
+  ipv6_cidr_blocks  = (aws_vpc.vpc.ipv6_cidr_block == "" ? null : [aws_vpc.vpc.ipv6_cidr_block])
 }

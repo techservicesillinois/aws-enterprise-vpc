@@ -41,8 +41,14 @@ variable "vpc_short_name" {
   type        = string
 }
 
-variable "ssh_cidr_blocks" {
+variable "ssh_ipv4_cidr_blocks" {
   description = "Optional IPv4 CIDR blocks from which to allow SSH"
+  type        = list(string)
+  default     = []
+}
+
+variable "ssh_ipv6_cidr_blocks" {
+  description = "Optional IPv6 CIDR blocks from which to allow SSH"
   type        = list(string)
   default     = []
 }
@@ -61,6 +67,10 @@ output "private_ip" {
 
 output "public_ip" {
   value = aws_instance.example.public_ip
+}
+
+output "ipv6_addresses" {
+  value = aws_instance.example.ipv6_addresses
 }
 
 ## Providers
@@ -112,6 +122,10 @@ resource "aws_instance" "example" {
   # use "null" to omit this argument if we didn't create an aws_key_pair
   key_name = length(aws_key_pair.example) > 0 ? aws_key_pair.example[0].key_name : null
 
+  # assign IPv6 if available, even if assign_ipv6_address_on_creation is
+  # disabled for the subnet
+  ipv6_address_count = (data.aws_subnet.public1-a-net.ipv6_cidr_block == "" ? null : 1)
+
   tags = {
     Name = "example-instance"
   }
@@ -145,16 +159,18 @@ resource "aws_security_group_rule" "allow_outbound" {
   from_port         = 0
   to_port           = 0
   cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
 }
 
 resource "aws_security_group_rule" "allow_ssh" {
-  # only create this rule if ssh_cidr_blocks is specified
-  count = length(var.ssh_cidr_blocks) > 0 ? 1 : 0
+  # only create this rule if we have at least one CIDR block
+  count = length(var.ssh_ipv4_cidr_blocks) + length(var.ssh_ipv6_cidr_blocks) > 0 ? 1 : 0
 
   security_group_id = aws_security_group.example.id
   type              = "ingress"
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
-  cidr_blocks       = var.ssh_cidr_blocks
+  cidr_blocks       = var.ssh_ipv4_cidr_blocks
+  ipv6_cidr_blocks  = var.ssh_ipv6_cidr_blocks
 }

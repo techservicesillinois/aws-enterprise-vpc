@@ -19,10 +19,21 @@ variable "cidr_block" { type = string }
 variable "availability_zone" { type = string }
 variable "pcx_ids" { type = list(string) }
 
+variable "ipv6_cidr_block" {
+  type    = string
+  default = null
+}
+
 # map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_ids" { type = map(string) }
 
 variable "map_public_ip_on_launch" { type = bool }
+
+variable "assign_ipv6_address_on_creation" {
+  description = "Optional override (defaults to true iff ipv6_cidr_block provided)"
+  type        = bool
+  default     = null
+}
 
 variable "propagating_vgws" {
   type    = list(string)
@@ -86,8 +97,16 @@ resource "aws_subnet" "subnet" {
 
   availability_zone       = var.availability_zone
   cidr_block              = var.cidr_block
+  ipv6_cidr_block         = var.ipv6_cidr_block
   map_public_ip_on_launch = var.map_public_ip_on_launch
   vpc_id                  = var.vpc_id
+
+  assign_ipv6_address_on_creation = (var.assign_ipv6_address_on_creation != null
+    # honor explicit override
+    ? var.assign_ipv6_address_on_creation
+    # default to true iff the subnet has IPv6
+    : (var.ipv6_cidr_block != null)
+  )
 }
 
 resource "aws_route_table" "rtb" {
