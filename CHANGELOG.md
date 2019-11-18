@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - convenient IAM Role for creating Flow Logs
 - support Amazon-assigned IPv6 (disabled by default)
+- demonstrate cloud-init in example-service
+
+### Changed
+- update example-service to Amazon Linux 2, t3.nano
 
 
 

@@ -1,0 +1,16 @@
+#cloud-config
+#
+# http://cloudinit.readthedocs.io/en/latest/topics/examples.html
+# (see also Modules)
+#
+# Modules run in an order predetermined by /etc/cloud/cloud.cfg.  For human
+# convenience, keep this file organized in the same order.
+#
+# Detailed logs appear in /var/log/cloud-init.log
+
+write_files:
+- path: /etc/motd.tail
+  content: |
+
+    Hello world!  ${welcome_message}
+  permissions: '0440'

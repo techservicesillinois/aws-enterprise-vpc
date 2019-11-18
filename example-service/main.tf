@@ -7,7 +7,8 @@ terraform {
   required_version = "~> 0.12.9"
 
   required_providers {
-    aws = "~> 2.32"
+    aws      = "~> 2.32"
+    template = "~> 2.1"
   }
 
   backend "s3" {
@@ -80,7 +81,7 @@ provider "aws" {
   allowed_account_ids = [var.account_id]
 }
 
-# Get the latest Amazon Linux AMI matching the specified name pattern
+# Get the latest Amazon Linux 2 AMI matching the specified name pattern
 
 data "aws_ami" "ami" {
   most_recent = true
@@ -88,7 +89,7 @@ data "aws_ami" "ami" {
 
   filter {
     name   = "name"
-    values = ["amzn-ami-hvm-*-x86_64-gp2"]
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
 
@@ -114,8 +115,12 @@ data "aws_subnet" "public1-a-net" {
 # launch an EC2 instance in the selected Subnet
 
 resource "aws_instance" "example" {
+  tags = {
+    Name = "example-instance"
+  }
+
   ami                    = data.aws_ami.ami.id
-  instance_type          = "t2.nano"
+  instance_type          = "t3.nano"
   subnet_id              = data.aws_subnet.public1-a-net.id
   vpc_security_group_ids = [aws_security_group.example.id]
 
@@ -126,9 +131,8 @@ resource "aws_instance" "example" {
   # disabled for the subnet
   ipv6_address_count = (data.aws_subnet.public1-a-net.ipv6_cidr_block == "" ? null : 1)
 
-  tags = {
-    Name = "example-instance"
-  }
+  # optional cloud-init customization
+  user_data = data.template_cloudinit_config.user_data.rendered
 }
 
 # SSH Key Pair
@@ -173,4 +177,16 @@ resource "aws_security_group_rule" "allow_ssh" {
   protocol          = "tcp"
   cidr_blocks       = var.ssh_ipv4_cidr_blocks
   ipv6_cidr_blocks  = var.ssh_ipv6_cidr_blocks
+}
+
+# User Data
+
+# base64 gzipped cloud-config
+data "template_cloudinit_config" "user_data" {
+  part {
+    content_type = "text/cloud-config"
+    content = templatefile("${path.module}/cloud-config.yml", {
+      welcome_message = "Welcome to ${data.aws_vpc.vpc.tags["Name"]}."
+    })
+  }
 }
