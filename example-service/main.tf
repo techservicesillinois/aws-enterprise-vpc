@@ -132,7 +132,7 @@ resource "aws_instance" "example" {
   ipv6_address_count = (data.aws_subnet.public1-a-net.ipv6_cidr_block == "" ? null : 1)
 
   # optional cloud-init customization
-  user_data = data.template_cloudinit_config.user_data.rendered
+  user_data_base64 = data.template_cloudinit_config.user_data.rendered
 }
 
 # SSH Key Pair
