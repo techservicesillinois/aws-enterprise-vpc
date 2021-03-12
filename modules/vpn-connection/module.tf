@@ -6,7 +6,7 @@ terraform {
   required_version = ">= 0.12.9"
 
   required_providers {
-    aws = ">= 2.32"
+    aws = ">= 3.30"
   }
 }
 
@@ -20,11 +20,37 @@ variable "name" {
 variable "vpn_gateway_id" {
   description = "VPN Gateway to use for this VPN connection, e.g. vgw-abcd1234"
   type        = string
+  default     = null
+}
+
+variable "transit_gateway_id" {
+  description = "Transit Gateway to use for this VPN connection (specify instead of vpn_gateway_id), e.g. tgw-abcd1234"
+  type        = string
+  default     = null
+}
+
+# workaround for https://github.com/hashicorp/terraform/issues/4149
+variable "use_transit_gateway" {
+  description = "set this to true if a Transit Gateway is provided"
+  type        = bool
+  default     = false
 }
 
 variable "customer_gateway_id" {
   description = "Customer Gateway to connect to, e.g. cgw-abcd1234"
   type        = string
+}
+
+# explicit tunnel options if desired, see
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpn_connection
+# https://docs.aws.amazon.com/vpn/latest/s2svpn/VPNTunnels.html
+variable "tunnel1_inside_cidr" {
+  type    = string
+  default = null
+}
+variable "tunnel2_inside_cidr" {
+  type    = string
+  default = null
 }
 
 variable "create_alarm" {
@@ -62,9 +88,18 @@ variable "ok_actions" {
   default     = []
 }
 
-# Alarm must exist in same region as Metric, i.e. same region as global Lambda
-provider "aws" {
-  alias = "vpn_monitor"
+# see https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarm-evaluation
+variable "alarm_period" {
+  type        = number
+  default     = 60
+}
+variable "alarm_evaluation_periods" {
+  type        = number
+  default     = 2
+}
+variable "alarm_datapoints_to_alarm" {
+  type        = number
+  default     = 2
 }
 
 variable "tags" {
@@ -87,8 +122,17 @@ variable "tags_cloudwatch_metric_alarm" {
 
 ## Outputs
 
+output "vpn" {
+  sensitive = true
+  value     = aws_vpn_connection.vpn
+}
+
 output "id" {
   value = aws_vpn_connection.vpn.id
+}
+
+output "transit_gateway_attachment_id" {
+  value = aws_vpn_connection.vpn.transit_gateway_attachment_id
 }
 
 output "customer_gateway_configuration" {
@@ -98,10 +142,6 @@ output "customer_gateway_configuration" {
 
 ## Resources
 
-# Get region of default provider
-
-data "aws_region" "current" {}
-
 # VPN Connection
 
 resource "aws_vpn_connection" "vpn" {
@@ -110,12 +150,33 @@ resource "aws_vpn_connection" "vpn" {
   }, var.tags_vpn_connection)
 
   vpn_gateway_id      = var.vpn_gateway_id
+  transit_gateway_id  = var.transit_gateway_id
   customer_gateway_id = var.customer_gateway_id
   type                = "ipsec.1"
+
+  tunnel1_inside_cidr = var.tunnel1_inside_cidr
+  tunnel2_inside_cidr = var.tunnel2_inside_cidr
 }
 
-# Optional CloudWatch Alarm based on Metric populated by
-# https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
+# also tag implicitly-created TGW VPN Attachment if applicable
+resource "aws_ec2_tag" "tgw_attachment" {
+  for_each = { for k,v in merge(var.tags, {
+    Name = var.name
+  }, var.tags_vpn_connection)
+  #: k => v if var.transit_gateway_id != null }
+  : k => v if var.use_transit_gateway }
+
+  resource_id = aws_vpn_connection.vpn.transit_gateway_attachment_id
+  key         = each.key
+  value       = each.value
+}
+
+# Optional CloudWatch Alarm based on VPN tunnel metrics; see also
+# https://docs.aws.amazon.com/vpn/latest/s2svpn/monitoring-cloudwatch-vpn.html
+#
+# Empirically, TunnelState per VpnId drops from 1 to 0 when just one of the two
+# tunnels goes down, so use TunnelState per TunnelIpAddress to distinguish
+# between one tunnel down vs both tunnels down.
 
 locals {
   alarm_threshold   = var.alarm_requires_both_tunnels ? 2 : 1
@@ -123,28 +184,54 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "vpnstatus" {
-  provider          = aws.vpn_monitor
-  count             = var.create_alarm ? 1 : 0
+  count = var.create_alarm ? 1 : 0
+
   tags              = merge(var.tags, var.tags_cloudwatch_metric_alarm)
   alarm_name        = "${aws_vpn_connection.vpn.id} | ${var.name}"
   alarm_description = local.alarm_description
-  namespace         = "VPNStatus"
-  metric_name       = aws_vpn_connection.vpn.id
 
-  dimensions = {
-    CGW = var.customer_gateway_id
-    VGW = var.vpn_gateway_id
-
-    # data value indicating region of VPN connection, which may be
-    # different from region of CloudWatch Metric
-    Region = data.aws_region.current.name
+  metric_query {
+    id          = "e1"
+    return_data = "true"
+    label       = "Tunnels in BGP ESTABLISHED state"
+    expression  = "SUM([m1,m2])"
   }
 
-  statistic           = "Minimum"
+  metric_query {
+    id = "m1"
+
+    metric {
+      namespace   = "AWS/VPN"
+      metric_name = "TunnelState"
+      dimensions  = {
+        TunnelIpAddress = aws_vpn_connection.vpn.tunnel1_address
+      }
+
+      stat   = "Minimum"
+      period = var.alarm_period
+    }
+  }
+
+  metric_query {
+    id = "m2"
+
+    metric {
+      namespace   = "AWS/VPN"
+      metric_name = "TunnelState"
+      dimensions  = {
+        TunnelIpAddress = aws_vpn_connection.vpn.tunnel2_address
+      }
+
+      stat   = "Minimum"
+      period = var.alarm_period
+    }
+  }
+
   comparison_operator = "LessThanThreshold"
   threshold           = local.alarm_threshold
-  period              = "300"
-  evaluation_periods  = "2"
+  treat_missing_data  = "missing"
+  evaluation_periods  = var.alarm_evaluation_periods
+  datapoints_to_alarm = var.alarm_datapoints_to_alarm
 
   alarm_actions             = var.alarm_actions
   insufficient_data_actions = var.insufficient_data_actions

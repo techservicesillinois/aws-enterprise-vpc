@@ -47,7 +47,9 @@ output "customer_gateway_ids" {
 }
 
 output "vpn_monitor_arn" {
-  value = aws_sns_topic.vpn-monitor.arn
+  value = {
+    us-east-2 = aws_sns_topic.vpn-monitor_us-east-2.arn
+  }
 }
 
 ## Providers
@@ -92,30 +94,11 @@ module "cgw_us-east-2" {
   }
 }
 
-# Optional CloudWatch monitoring for VPN connections (deployed in one region
-# but monitors VPN connections in all regions): see
-# https://docs.aws.amazon.com/solutions/latest/vpn-monitor/
-
-resource "aws_cloudformation_stack" "vpn-monitor" {
-  provider = "aws.us-east-2"
-  name     = "vpn-monitor"
-  tags     = var.tags
-
-  parameters = {
-    # 5-minute interval
-    CWEventSchedule = "cron(0/5 * * * ? *)"
-  }
-
-  template_url = "https://s3.amazonaws.com/solutions-reference/vpn-monitor/latest/vpn-monitor.template"
-  capabilities = ["CAPABILITY_IAM"]
-  on_failure   = "ROLLBACK"
-}
-
-# SNS topic for VPN monitoring alerts (same region as above).  Note that email
-# subscriptions to this topic must be manual, per
+# SNS topics for VPN monitoring alerts (add regions if needed).  Note that
+# email subscriptions to a topic must be manual, per
 # https://www.terraform.io/docs/providers/aws/r/sns_topic_subscription.html
 
-resource "aws_sns_topic" "vpn-monitor" {
+resource "aws_sns_topic" "vpn-monitor_us-east-2" {
   provider = "aws.us-east-2"
   name     = "vpn-monitor-topic"
   tags     = var.tags

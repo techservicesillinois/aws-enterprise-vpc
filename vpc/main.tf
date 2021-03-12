@@ -105,15 +105,6 @@ provider "aws" {
   allowed_account_ids = [var.account_id]
 }
 
-# explicit provider for us-east-2 (VPN connection monitoring)
-provider "aws" {
-  alias  = "us-east-2"
-  region = "us-east-2"
-
-  # avoid accidentally modifying the wrong AWS account
-  allowed_account_ids = [var.account_id]
-}
-
 ## Resources
 
 # create the VPC
@@ -208,13 +199,9 @@ module "vpn1" {
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws1-pub"]
   create_alarm        = true
 
-  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-
-  providers = {
-    aws.vpn_monitor = aws.us-east-2
-  }
+  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
 }
 
 output "vpn1_customer_gateway_configuration" {
@@ -244,13 +231,9 @@ module "vpn2" {
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws2-pub"]
   create_alarm        = true
 
-  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn]
-
-  providers = {
-    aws.vpn_monitor = aws.us-east-2
-  }
+  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
 }
 
 output "vpn2_customer_gateway_configuration" {
