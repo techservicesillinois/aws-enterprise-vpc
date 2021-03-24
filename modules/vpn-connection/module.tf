@@ -3,10 +3,13 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.9"
+  required_version = ">= 0.14"
 
   required_providers {
-    aws = ">= 3.30"
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 3.30"
+    }
   }
 }
 
@@ -23,17 +26,16 @@ variable "vpn_gateway_id" {
   default     = null
 }
 
+# singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
 variable "transit_gateway_id" {
-  description = "Transit Gateway to use for this VPN connection (specify instead of vpn_gateway_id), e.g. tgw-abcd1234"
-  type        = string
-  default     = null
-}
+  description = "Transit Gateway to use for this VPN connection (specify instead of vpn_gateway_id), e.g. tgw-abcd1234, wrapped in singleton list"
+  type        = list(string)
+  default     = []
 
-# workaround for https://github.com/hashicorp/terraform/issues/4149
-variable "use_transit_gateway" {
-  description = "set this to true if a Transit Gateway is provided"
-  type        = bool
-  default     = false
+  validation {
+    condition     = length(var.transit_gateway_id) < 2
+    error_message = "Only one element allowed."
+  }
 }
 
 variable "customer_gateway_id" {
@@ -150,7 +152,7 @@ resource "aws_vpn_connection" "vpn" {
   }, var.tags_vpn_connection)
 
   vpn_gateway_id      = var.vpn_gateway_id
-  transit_gateway_id  = var.transit_gateway_id
+  transit_gateway_id  = try(var.transit_gateway_id[0], null)
   customer_gateway_id = var.customer_gateway_id
   type                = "ipsec.1"
 
@@ -163,8 +165,7 @@ resource "aws_ec2_tag" "tgw_attachment" {
   for_each = { for k,v in merge(var.tags, {
     Name = var.name
   }, var.tags_vpn_connection)
-  #: k => v if var.transit_gateway_id != null }
-  : k => v if var.use_transit_gateway }
+  : k => v if length(var.transit_gateway_id) > 0 }
 
   resource_id = aws_vpn_connection.vpn.transit_gateway_attachment_id
   key         = each.key

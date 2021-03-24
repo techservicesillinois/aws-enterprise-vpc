@@ -4,11 +4,17 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.12.13"
+  required_version = "~> 0.14.7"
 
   required_providers {
-    aws  = "~> 2.32"
-    null = "~> 2.1"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 2.32"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 2.1"
+    }
   }
 
   backend "s3" {
@@ -325,9 +331,10 @@ module "public1-a-net" {
 
   vpc_id              = aws_vpc.vpc.id
   pcx_ids             = var.pcx_ids
-  dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
   internet_gateway_id = aws_internet_gateway.igw.id
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "public1-b-net" {
@@ -344,9 +351,10 @@ module "public1-b-net" {
 
   vpc_id              = aws_vpc.vpc.id
   pcx_ids             = var.pcx_ids
-  dummy_depends_on    = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids        = local.gateway_vpc_endpoint_ids
   internet_gateway_id = aws_internet_gateway.igw.id
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "campus1-a-net" {
@@ -359,10 +367,11 @@ module "campus1-a-net" {
 
   vpc_id           = aws_vpc.vpc.id
   pcx_ids          = var.pcx_ids
-  dummy_depends_on = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids     = local.gateway_vpc_endpoint_ids
   vpn_gateway_id   = aws_vpn_gateway.vgw.id
-  nat_gateway_id   = module.nat-a.id
+  nat_gateway_id   = [module.nat-a.id]
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "campus1-b-net" {
@@ -375,10 +384,11 @@ module "campus1-b-net" {
 
   vpc_id           = aws_vpc.vpc.id
   pcx_ids          = var.pcx_ids
-  dummy_depends_on = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids     = local.gateway_vpc_endpoint_ids
   vpn_gateway_id   = aws_vpn_gateway.vgw.id
-  nat_gateway_id   = module.nat-b.id
+  nat_gateway_id   = [module.nat-b.id]
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "private1-a-net" {
@@ -395,10 +405,11 @@ module "private1-a-net" {
 
   vpc_id                 = aws_vpc.vpc.id
   pcx_ids                = var.pcx_ids
-  dummy_depends_on       = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids           = local.gateway_vpc_endpoint_ids
-  nat_gateway_id         = module.nat-a.id
-  egress_only_gateway_id = aws_egress_only_internet_gateway.eigw.id
+  nat_gateway_id         = [module.nat-a.id]
+  egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "private1-b-net" {
@@ -415,8 +426,9 @@ module "private1-b-net" {
 
   vpc_id                 = aws_vpc.vpc.id
   pcx_ids                = var.pcx_ids
-  dummy_depends_on       = null_resource.wait_for_vpc_peering_connection_accepter.id
   endpoint_ids           = local.gateway_vpc_endpoint_ids
-  nat_gateway_id         = module.nat-b.id
-  egress_only_gateway_id = aws_egress_only_internet_gateway.eigw.id
+  nat_gateway_id         = [module.nat-b.id]
+  egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
+
+  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }

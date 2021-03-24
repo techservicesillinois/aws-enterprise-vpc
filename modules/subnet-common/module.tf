@@ -4,10 +4,13 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.13"
+  required_version = ">= 0.14"
 
   required_providers {
-    aws = ">= 2.32"
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.32"
+    }
   }
 }
 
@@ -38,18 +41,6 @@ variable "assign_ipv6_address_on_creation" {
 variable "propagating_vgws" {
   type    = list(string)
   default = []
-}
-
-# workaround for https://github.com/hashicorp/terraform/issues/10462
-variable "dummy_depends_on" {
-  type    = string
-  default = ""
-}
-
-resource "null_resource" "dummy_depends_on" {
-  triggers = {
-    t = var.dummy_depends_on
-  }
 }
 
 variable "tags" {
@@ -129,13 +120,7 @@ resource "aws_route_table_association" "rtb_assoc" {
 data "aws_vpc_peering_connection" "pcx" {
   for_each = toset(var.pcx_ids)
 
-  #id = each.value
-  #depends_on = [null_resource.dummy_depends_on]
-
-  # As of TF 0.12.9, using depends_on here results in failures:
-  # https://github.com/hashicorp/terraform/issues/22908
-  # Work around by embedding the dependency within id instead.
-  id = null_resource.dummy_depends_on.id != "" ? each.value : null
+  id = each.value
 }
 
 resource "aws_route" "pcx" {

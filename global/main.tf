@@ -4,10 +4,13 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.12.9"
+  required_version = "~> 0.14.7"
 
   required_providers {
-    aws = "~> 2.32"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 2.32"
+    }
   }
 
   backend "s3" {

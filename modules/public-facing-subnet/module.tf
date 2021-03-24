@@ -3,10 +3,13 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.13"
+  required_version = ">= 0.14"
 
   required_providers {
-    aws = ">= 2.32"
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.32"
+    }
   }
 }
 
@@ -43,18 +46,6 @@ variable "pcx_ids" {
   type        = list(string)
   default     = []
 }
-
-# workaround for https://github.com/hashicorp/terraform/issues/10462
-variable "dummy_depends_on" {
-  type    = string
-  default = ""
-}
-
-#resource "null_resource" "dummy_depends_on" {
-#  triggers = {
-#    t = var.dummy_depends_on
-#  }
-#}
 
 # map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_ids" {
@@ -118,7 +109,6 @@ module "subnet" {
   ipv6_cidr_block                 = var.ipv6_cidr_block
   availability_zone               = var.availability_zone
   pcx_ids                         = var.pcx_ids
-  dummy_depends_on                = var.dummy_depends_on
   endpoint_ids                    = var.endpoint_ids
   map_public_ip_on_launch         = true
   assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation

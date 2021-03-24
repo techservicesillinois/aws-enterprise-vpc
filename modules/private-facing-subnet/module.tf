@@ -3,10 +3,13 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.12.13"
+  required_version = ">= 0.14"
 
   required_providers {
-    aws = ">= 2.32"
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.32"
+    }
   }
 }
 
@@ -44,18 +47,6 @@ variable "pcx_ids" {
   default     = []
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/10462
-variable "dummy_depends_on" {
-  type    = string
-  default = ""
-}
-
-#resource "null_resource" "dummy_depends_on" {
-#  triggers = {
-#    t = var.dummy_depends_on
-#  }
-#}
-
 # map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "endpoint_ids" {
   description = "Optional map of Gateway VPC Endpoints e.g. vpce-abcd1234 to use in this subnet's route table"
@@ -63,30 +54,28 @@ variable "endpoint_ids" {
   default     = {}
 }
 
+# singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
 variable "nat_gateway_id" {
-  description = "Optional NAT Gateway to use for IPv4 default route, e.g. nat-abcdefgh12345678"
-  type        = string
-  default     = ""
+  description = "Optional NAT Gateway to use for IPv4 default route, e.g. nat-abcdefgh12345678, wrapped in singleton list"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.nat_gateway_id) < 2
+    error_message = "Only one element allowed."
+  }
 }
 
-# workaround for https://github.com/hashicorp/terraform/issues/4149
-variable "use_nat_gateway" {
-  description = "set this to false if a NAT gateway is _not_ provided"
-  type        = bool
-  default     = true
-}
-
+# singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
 variable "egress_only_gateway_id" {
-  description = "Optional Egress-Only Internet Gateway to use for IPv6 default route, e.g. eigw-abcdefgh12345678"
-  type        = string
-  default     = null
-}
+  description = "Optional Egress-Only Internet Gateway to use for IPv6 default route, e.g. eigw-abcdefgh12345678, wrapped in singleton list"
+  type        = list(string)
+  default     = []
 
-# workaround for https://github.com/hashicorp/terraform/issues/4149
-variable "use_egress_only_gateway" {
-  description = "set this to false if an Egress-Only Internet Gateway is _not_ provided"
-  type        = bool
-  default     = true
+  validation {
+    condition     = length(var.egress_only_gateway_id) < 2
+    error_message = "Only one element allowed."
+  }
 }
 
 variable "assign_ipv6_address_on_creation" {
@@ -139,7 +128,6 @@ module "subnet" {
   ipv6_cidr_block                 = var.ipv6_cidr_block
   availability_zone               = var.availability_zone
   pcx_ids                         = var.pcx_ids
-  dummy_depends_on                = var.dummy_depends_on
   endpoint_ids                    = var.endpoint_ids
   map_public_ip_on_launch         = false
   assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
@@ -152,20 +140,18 @@ module "subnet" {
 
 resource "aws_route" "ipv4_default" {
   # note: tags not supported
-  #count = var.nat_gateway_id == "" ? 0 : 1
-  count = var.use_nat_gateway ? 1 : 0
+  count = length(var.nat_gateway_id)
 
   route_table_id         = module.subnet.route_table_id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = var.nat_gateway_id
+  nat_gateway_id         = var.nat_gateway_id[0]
 }
 
 resource "aws_route" "ipv6_default" {
   # note: tags not supported
-  #count = var.egress_only_gateway_id == null ? 0 : 1
-  count = var.use_egress_only_gateway ? 1 : 0
+  count = length(var.egress_only_gateway_id)
 
   route_table_id              = module.subnet.route_table_id
   destination_ipv6_cidr_block = "::/0"
-  egress_only_gateway_id      = var.egress_only_gateway_id
+  egress_only_gateway_id      = var.egress_only_gateway_id[0]
 }

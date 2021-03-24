@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - vpn-connection now supports Transit Gateway (as well as VPN Gateway)
 
 ### Changed
+- requires Terraform 0.14.x
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - SNS topics for VPN monitoring alerts are now per-region
