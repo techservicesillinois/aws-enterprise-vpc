@@ -61,6 +61,20 @@ variable "vpc_short_name" {
   type        = string
 }
 
+variable "use_transit_gateway" {
+  description = "Should this VPC attach to (and create routes toward) a Transit Gateway?"
+  type        = bool
+}
+
+variable "transit_gateway_id" {
+  description = "Optionally specify *which* Transit Gateway (e.g. tgw-abcd1234)"
+  type        = string
+  # common case: exactly one Transit Gateway is available in the region (shared
+  # with your AWS account via Resource Access Manager), so we can choose that
+  # one automatically
+  default     = null
+}
+
 variable "pcx_ids" {
   description = "Optional list of existing VPC Peering Connections (e.g. pcx-abcd1234) to use in routing tables"
   type        = list(string)
@@ -93,6 +107,10 @@ output "vpc_cidr_block" {
 
 output "vpc_ipv6_cidr_block" {
   value = aws_vpc.vpc.ipv6_cidr_block
+}
+
+output "tgw_attachment" {
+  value = var.use_transit_gateway ? aws_ec2_transit_gateway_vpc_attachment.tgw_attach[0].id : null
 }
 
 output "vpc_region" {
@@ -148,17 +166,49 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
 }
 
-# create an IPv6 Egress-Only Internet Gateway for private-facing subnets
+# create attachment to Transit Gateway
 
-resource "aws_egress_only_internet_gateway" "eigw" {
-  # note: tags not supported
-  vpc_id = aws_vpc.vpc.id
+data "aws_ec2_transit_gateway" "tgw" {
+  count = var.use_transit_gateway ? 1 : 0
+
+  # NB: may be null if we only have one TGW in the region
+  id = var.transit_gateway_id
+}
+resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
+  count = var.use_transit_gateway ? 1 : 0
+
+  tags = merge(var.tags, {
+    Name = "${var.vpc_short_name}-tgw-attachment"
+  })
+
+  transit_gateway_id = data.aws_ec2_transit_gateway.tgw[0].id
+  vpc_id             = aws_vpc.vpc.id
+
+  # Subnets are defined further down.  Since the Core Services TGW will only
+  # send you traffic destined for your own VPC, it doesn't matter whether you
+  # use public-facing, campus-facing, or private-facing subnets here.
+  subnet_ids = [module.public1-a-net.id, module.public1-b-net.id]
+
+  # Comment this out if you really need to destroy the attachment.  Note: if
+  # you subsequently recreate it, you will need to contact Technology Services
+  # again to reprovision the Core Services side.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+locals {
+  # passing this (not the data source) to subnets ensures that Terraform will
+  # create the attachment *before* trying to create routes to it
+  transit_gateway_id_l = aws_ec2_transit_gateway_vpc_attachment.tgw_attach[*].transit_gateway_id
 }
 
+/*
 # create a NAT Gateway in each Availability Zone
 #
-# Omit this section if your campus-facing and private-facing subnets do not
-# require outbound Internet access.
+# Uncomment this section if you need private-facing subnets with outbound
+# Internet access.  (Note: campus-facing subnets can use NAT gateways too, but
+# by default they use the Transit Gateway for egress so we can save money by
+# not deploying NAT gateways).
 
 module "nat-a" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
@@ -181,11 +231,23 @@ module "nat-b" {
   # this public-facing subnet is defined further down
   public_subnet_id = module.public1-b-net.id
 }
+*/
 
+# create an IPv6 Egress-Only Internet Gateway for private-facing subnets
+#
+# Unlike the NAT gateways this doesn't incur an hourly charge, so it's okay to
+# create it even if we don't need it.
+
+resource "aws_egress_only_internet_gateway" "eigw" {
+  # note: tags not supported
+  vpc_id = aws_vpc.vpc.id
+}
+
+/*
 # create a VPN Gateway with a VPN Connection to each of the Customer Gateways
 # defined in the global environment
 #
-# Omit this section if you do not need any campus-facing subnets.
+# This solution is DEPRECATED in favor of Transit Gateway.
 
 resource "aws_vpn_gateway" "vgw" {
   tags = merge(var.tags, {
@@ -224,7 +286,7 @@ resource "null_resource" "vpn1" {
   # you subsequently recreate it, you will need to contact Technology Services
   # again to rebuild the on-campus configuration.
   lifecycle {
-    prevent_destroy = true
+    #prevent_destroy = true
   }
 }
 
@@ -256,9 +318,10 @@ resource "null_resource" "vpn2" {
   # you subsequently recreate it, you will need to contact Technology Services
   # again to rebuild the on-campus configuration.
   lifecycle {
-    prevent_destroy = true
+    #prevent_destroy = true
   }
 }
+*/
 
 # accept the specified VPC Peering Connections
 
@@ -332,6 +395,7 @@ module "public1-a-net" {
   vpc_id              = aws_vpc.vpc.id
   pcx_ids             = var.pcx_ids
   endpoint_ids        = local.gateway_vpc_endpoint_ids
+  transit_gateway_id  = local.transit_gateway_id_l
   internet_gateway_id = aws_internet_gateway.igw.id
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
@@ -352,6 +416,7 @@ module "public1-b-net" {
   vpc_id              = aws_vpc.vpc.id
   pcx_ids             = var.pcx_ids
   endpoint_ids        = local.gateway_vpc_endpoint_ids
+  transit_gateway_id  = local.transit_gateway_id_l
   internet_gateway_id = aws_internet_gateway.igw.id
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
@@ -365,11 +430,16 @@ module "campus1-a-net" {
   cidr_block        = "192.168.0.64/27" #FIXME
   availability_zone = "${var.region}a"
 
-  vpc_id           = aws_vpc.vpc.id
-  pcx_ids          = var.pcx_ids
-  endpoint_ids     = local.gateway_vpc_endpoint_ids
-  vpn_gateway_id   = aws_vpn_gateway.vgw.id
-  nat_gateway_id   = [module.nat-a.id]
+  vpc_id             = aws_vpc.vpc.id
+  pcx_ids            = var.pcx_ids
+  endpoint_ids       = local.gateway_vpc_endpoint_ids
+  transit_gateway_id = local.transit_gateway_id_l
+
+  # DEPRECATED
+  #vpn_gateway_id = aws_vpn_gateway.vgw.id
+
+  # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
+  #nat_gateway_id = [module.nat-a.id]
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
@@ -382,11 +452,16 @@ module "campus1-b-net" {
   cidr_block        = "192.168.0.96/27" #FIXME
   availability_zone = "${var.region}b"
 
-  vpc_id           = aws_vpc.vpc.id
-  pcx_ids          = var.pcx_ids
-  endpoint_ids     = local.gateway_vpc_endpoint_ids
-  vpn_gateway_id   = aws_vpn_gateway.vgw.id
-  nat_gateway_id   = [module.nat-b.id]
+  vpc_id             = aws_vpc.vpc.id
+  pcx_ids            = var.pcx_ids
+  endpoint_ids       = local.gateway_vpc_endpoint_ids
+  transit_gateway_id = local.transit_gateway_id_l
+
+  # DEPRECATED
+  #vpn_gateway_id = aws_vpn_gateway.vgw.id
+
+  # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
+  #nat_gateway_id = [module.nat-b.id]
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
@@ -403,11 +478,14 @@ module "private1-a-net" {
   # should interfaces in this subnet automatically get IPv6 addresses?
   assign_ipv6_address_on_creation = false
 
-  vpc_id                 = aws_vpc.vpc.id
-  pcx_ids                = var.pcx_ids
-  endpoint_ids           = local.gateway_vpc_endpoint_ids
-  nat_gateway_id         = [module.nat-a.id]
-  egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
+  vpc_id             = aws_vpc.vpc.id
+  pcx_ids            = var.pcx_ids
+  endpoint_ids       = local.gateway_vpc_endpoint_ids
+  transit_gateway_id = local.transit_gateway_id_l
+
+  # Uncomment if your private-facing subnets require outbound Internet access
+  #nat_gateway_id         = [module.nat-a.id]
+  #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
@@ -424,11 +502,14 @@ module "private1-b-net" {
   # should interfaces in this subnet automatically get IPv6 addresses?
   assign_ipv6_address_on_creation = false
 
-  vpc_id                 = aws_vpc.vpc.id
-  pcx_ids                = var.pcx_ids
-  endpoint_ids           = local.gateway_vpc_endpoint_ids
-  nat_gateway_id         = [module.nat-b.id]
-  egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
+  vpc_id             = aws_vpc.vpc.id
+  pcx_ids            = var.pcx_ids
+  endpoint_ids       = local.gateway_vpc_endpoint_ids
+  transit_gateway_id = local.transit_gateway_id_l
+
+  # Uncomment if your private-facing subnets require outbound Internet access
+  #nat_gateway_id         = [module.nat-b.id]
+  #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
 
   depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }

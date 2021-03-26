@@ -6,16 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- attach to Transit Gateway shared from the Core Services account
+- routes from VPC to Transit Gateway based on shared prefix lists (but must re-run Terraform when the prefix list changes)
+- support Amazon-assigned IPv6 (but disabled by default) for public- and private-facing subnets
 - convenient IAM Role for creating Flow Logs
-- support Amazon-assigned IPv6 (disabled by default)
 - demonstrate cloud-init in example-service
 - vpn-connection now supports Transit Gateway (as well as VPN Gateway)
+- accept Resource Access Manager (RAM) shares from other accounts
 
 ### Changed
 - requires Terraform 0.14.x
+- default vpc/main.tf now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - SNS topics for VPN monitoring alerts are now per-region
+
+### Deprecated
+- campus-facing VPN connections from each VPC (use Transit Gateway instead)
 
 ### Removed
 - old custom "VPNStatus" metrics solution (Lambda deployed via CloudFormation)

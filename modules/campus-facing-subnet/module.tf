@@ -60,9 +60,41 @@ variable "nat_gateway_id" {
   }
 }
 
+# DEPRECATED in favor of Transit Gateway
 variable "vpn_gateway_id" {
   description = "VPN Gateway for campus-facing routes, e.g. vgw-abcd1234"
   type        = string
+  default     = null
+}
+
+# singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
+variable "transit_gateway_id" {
+  description = "Optional Transit Gateway for cloud-facing and campus-facing routes, e.g. tgw-abcd1234, wrapped in singleton list"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.transit_gateway_id) < 2
+    error_message = "Only one element allowed."
+  }
+}
+
+# NB: re-run Terraform when the prefix list changes, until
+# https://github.com/hashicorp/terraform-provider-aws/issues/15273
+variable "transit_gateway_prefix_lists" {
+  description = "Map of existing prefix lists to route toward the Transit Gateway (if provided), specified by either name or id"
+  type        = map
+  default     = {
+    # common case: these prefix lists are already shared with your AWS account
+    # via Resource Access Manager (from the core services account)
+    uofi-campus-ipv4 = { name = "uofi-campus-ipv4" }
+  }
+}
+
+variable "default_ipv4_route_via_transit_gateway" {
+  description = "Optional override (defaults to true iff not using a NAT gateway)"
+  type        = bool
+  default     = null
 }
 
 variable "tags" {
@@ -103,18 +135,19 @@ output "cidr_block" {
 module "subnet" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/subnet-common?ref=v0.10"
 
-  vpc_id                  = var.vpc_id
-  name                    = var.name
-  cidr_block              = var.cidr_block
-  availability_zone       = var.availability_zone
-  pcx_ids                 = var.pcx_ids
-  endpoint_ids            = var.endpoint_ids
-  map_public_ip_on_launch = false
-
-  propagating_vgws = [var.vpn_gateway_id]
-  tags             = var.tags
-  tags_subnet      = var.tags_subnet
-  tags_route_table = var.tags_route_table
+  vpc_id                          = var.vpc_id
+  name                            = var.name
+  cidr_block                      = var.cidr_block
+  availability_zone               = var.availability_zone
+  pcx_ids                         = var.pcx_ids
+  endpoint_ids                    = var.endpoint_ids
+  map_public_ip_on_launch         = false
+  transit_gateway_id              = var.transit_gateway_id
+  transit_gateway_prefix_lists    = var.transit_gateway_prefix_lists
+  propagating_vgws                = var.vpn_gateway_id == null ? [] : [var.vpn_gateway_id]
+  tags                            = var.tags
+  tags_subnet                     = var.tags_subnet
+  tags_route_table                = var.tags_route_table
 }
 
 # default routes (if targets provided)
@@ -126,4 +159,18 @@ resource "aws_route" "ipv4_default" {
   route_table_id         = module.subnet.route_table_id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = var.nat_gateway_id[0]
+}
+
+resource "aws_route" "ipv4_default_via_tgw" {
+  # note: tags not supported
+  count = (var.default_ipv4_route_via_transit_gateway != null
+      # honor explicit override
+      ? var.default_ipv4_route_via_transit_gateway
+      # default to true iff not using a NAT gateway
+      : length(var.nat_gateway_id) == 0
+    ) ? length(var.transit_gateway_id) : 0
+
+  route_table_id         = module.subnet.route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  transit_gateway_id     = var.transit_gateway_id[0]
 }

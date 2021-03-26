@@ -25,7 +25,7 @@ One thing you should know: **if at first you don't succeed, try 'apply' again.**
 
 You will need:
 
-  * an AWS account
+  * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html)
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
@@ -68,6 +68,7 @@ You will need:
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
    * in `global/terraform.tfvars`:
      - account_id
+     - resource_share_arns
    * in `global/main.tf`:
      - bucket
    * in `vpc/terraform.tfvars`:
@@ -77,7 +78,7 @@ You will need:
      - bucket (2 occurrences, same value)
      - cidr_block (multiple occurrences, all different values)
 
-You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.  Note in particular that quite a few other components can be omitted if you aren't deploying any campus-facing subnets.
+You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.
 
 If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
@@ -119,48 +120,24 @@ To set up a new workstation:
 
        cd global
        terraform init
-       terraform plan
        terraform apply
        cd ..
-
-   * As an optional feature, the example global environment automatically deploys the [AWS Solution for monitoring VPN Connections](https://docs.aws.amazon.com/solutions/latest/vpn-monitor/overview.html) and creates a [Simple Notification Service](https://aws.amazon.com/sns/) topic which will be used later (by modules/vpn-connection) to create alarm notifications based on this monitoring.
-
-     If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topic (indicated by the Terraform output "vpn_monitor_arn"):
-
-         aws sns subscribe --region us-east-2 --topic-arn arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic \
-          --protocol email --notification-endpoint my-email@example.com
-
-     (then check your email and follow the confirmation instructions)
 
 3. Next, deploy the `vpc` environment to create your VPC:
 
        cd vpc
        terraform init
-       terraform plan
        terraform apply
 
    and generate the detailed output file needed for the following step:
 
        terraform output -json > details.json
 
-4. Contact Technology Services to enable Enterprise VPC networking features for your VPC:
+4. Contact Technology Services to enable Enterprise VPC networking features.
 
-   * Do you need a Core Services VPC peering, VPN connections, or both?
+   * Attach the `details.json` file generated in the previous step.
 
-   * Attach the `details.json` file generated in the previous step.  This contains your AWS account number, your VPC's name, region, ID, and CIDR block, and some additional configuration details (in escaped XML format) for the on-campus side of each VPN connection.
-
-5. If you requested a Core Services VPC peering connection, Technology Services will initiate one and provide you with its ID.  Edit `vpc/terraform.tfvars` to add the new peering connection ID (enclosed in quotes), e.g.
-
-       pcx_ids = ["pcx-abcd1234"]
-
-   and deploy the `vpc` environment again.  This will automatically accept the peering connection and add a corresponding route to each of your route tables (nothing else should change).
-
-       cd vpc
-       terraform plan
-       terraform apply
-       cd ..
-
-6. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
+5. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
 
    * Edit `vpc/terraform.tfvars` to specify the IPv4 addresses of the Core Services Resolvers in the Core Services VPC with which your VPC has a peering connection, e.g.
 
@@ -179,7 +156,6 @@ If you like, you can now deploy the `example-service` environment to launch an E
 
     cd example-service
     terraform init
-    terraform plan
     terraform apply
     cd ..
 

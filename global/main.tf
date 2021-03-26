@@ -34,6 +34,12 @@ variable "account_id" {
   type        = string
 }
 
+variable "resource_share_arns" {
+  description = "Optional list of existing RAM shares from other accounts (e.g. arn:aws:ram:us-east-2:123456789012:resource-share/abcd1234) to accept"
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Optional custom tags for all taggable resources"
   type        = map
@@ -42,6 +48,8 @@ variable "tags" {
 
 ## Outputs
 
+/*
+# DEPRECATED
 output "customer_gateway_ids" {
   value = {
     us-east-1 = module.cgw_us-east-1.customer_gateway_ids
@@ -49,11 +57,13 @@ output "customer_gateway_ids" {
   }
 }
 
+# DEPRECATED
 output "vpn_monitor_arn" {
   value = {
     us-east-2 = aws_sns_topic.vpn-monitor_us-east-2.arn
   }
 }
+*/
 
 ## Providers
 
@@ -74,6 +84,27 @@ provider "aws" {
 }
 
 ## Resources
+
+# accept RAM shares from other accounts (per region, add more regions if needed)
+
+resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-1" {
+  # note: tags not supported
+  provider = aws.us-east-1
+  for_each = toset([for s in var.resource_share_arns : s if length(regexall("^arn:aws:ram:us-east-1:",s))>0])
+
+  share_arn = each.key
+}
+
+resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-2" {
+  # note: tags not supported
+  provider = aws.us-east-2
+  for_each = toset([for s in var.resource_share_arns : s if length(regexall("^arn:aws:ram:us-east-2:",s))>0])
+
+  share_arn = each.key
+}
+
+/*
+# This solution is DEPRECATED in favor of Transit Gateway.
 
 # Customer Gateways (per region, add more regions if needed)
 
@@ -106,6 +137,7 @@ resource "aws_sns_topic" "vpn-monitor_us-east-2" {
   name     = "vpn-monitor-topic"
   tags     = var.tags
 }
+*/
 
 # Optional IAM Role (regionless) which can be used to publish Flow Logs to
 # CloudWatch Logs, created here for convenience: see

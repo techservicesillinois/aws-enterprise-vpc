@@ -21,6 +21,11 @@ variable "name" { type = string }
 variable "cidr_block" { type = string }
 variable "availability_zone" { type = string }
 variable "pcx_ids" { type = list(string) }
+variable "transit_gateway_id" { type = list(string) }
+
+# NB: re-run Terraform when the prefix list changes, until
+# https://github.com/hashicorp/terraform-provider-aws/issues/15273
+variable "transit_gateway_prefix_lists" { type = map }
 
 variable "ipv6_cidr_block" {
   type    = string
@@ -142,4 +147,32 @@ resource "aws_vpc_endpoint_route_table_association" "endpoint_rta" {
 
   vpc_endpoint_id = each.value
   route_table_id  = aws_route_table.rtb.id
+}
+
+# routes for Transit Gateway prefix lists (if any)
+
+data "aws_ec2_managed_prefix_list" "tgw_pl" {
+  for_each = length(var.transit_gateway_id) > 0 ? var.transit_gateway_prefix_lists : {}
+
+  # input var may specify either name or id for convenience
+  name = lookup(each.value, "name", null)
+  id   = lookup(each.value, "id", null)
+}
+
+# workaround https://github.com/hashicorp/terraform-provider-aws/issues/15273 :
+# Terraform cannot yet create a route referencing the prefix list id, but it
+# can read the prefix list and create a route to each CIDR.  The disadvantage
+# is that we must re-run Terraform to update our routes when the prefix list
+# changes, but fortunately for our purposes this should be rare.
+resource "aws_route" "tgw" {
+  #for_each = data.aws_ec2_managed_prefix_list.tgw_pl
+  for_each = merge([for k,v in data.aws_ec2_managed_prefix_list.tgw_pl : { for c in v.entries[*].cidr :
+    "${k}_${c}" => c
+  }]...)
+
+  route_table_id              = aws_route_table.rtb.id
+  #destination_prefix_list_id = each.value.id
+  destination_cidr_block      = length(regexall(":", each.value)) == 0 ? each.value : null
+  destination_ipv6_cidr_block = length(regexall(":", each.value)) > 0 ? each.value : null
+  transit_gateway_id          = var.transit_gateway_id[0]
 }

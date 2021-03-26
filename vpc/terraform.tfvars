@@ -11,6 +11,9 @@ region = "us-east-2"
 # The short name of your VPC, e.g. "foobar1" if the full name is "aws-foobar1-vpc"
 vpc_short_name = "example" #FIXME
 
+# Should this VPC attach to (and create routes toward) a Transit Gateway?
+use_transit_gateway = true
+
 # Add VPC Peering Connection IDs here *after* the peering is created
 #pcx_ids = ["pcx-abcd1234"]
 

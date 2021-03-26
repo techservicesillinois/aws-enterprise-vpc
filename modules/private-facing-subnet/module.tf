@@ -84,6 +84,30 @@ variable "assign_ipv6_address_on_creation" {
   default     = null
 }
 
+# singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
+variable "transit_gateway_id" {
+  description = "Optional Transit Gateway for cloud-facing and campus-facing routes, e.g. tgw-abcd1234, wrapped in singleton list"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.transit_gateway_id) < 2
+    error_message = "Only one element allowed."
+  }
+}
+
+# NB: re-run Terraform when the prefix list changes, until
+# https://github.com/hashicorp/terraform-provider-aws/issues/15273
+variable "transit_gateway_prefix_lists" {
+  description = "Map of existing prefix lists to route toward the Transit Gateway (if provided), specified by either name or id"
+  type        = map
+  default     = {
+    # common case: these prefix lists are already shared with your AWS account
+    # via Resource Access Manager (from the core services account)
+    uofi-cloud-ipv4 = { name = "uofi-cloud-ipv4" }
+  }
+}
+
 variable "tags" {
   description = "Optional custom tags for all taggable resources"
   type        = map
@@ -131,6 +155,8 @@ module "subnet" {
   endpoint_ids                    = var.endpoint_ids
   map_public_ip_on_launch         = false
   assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
+  transit_gateway_id              = var.transit_gateway_id
+  transit_gateway_prefix_lists    = var.transit_gateway_prefix_lists
   tags                            = var.tags
   tags_subnet                     = var.tags_subnet
   tags_route_table                = var.tags_route_table
