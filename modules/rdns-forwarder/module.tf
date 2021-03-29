@@ -189,7 +189,7 @@ resource "aws_instance" "forwarder" {
     # when a new release becomes available.  Note that yum update will still get
     # the latest packages regardless of which AMI we start from; see
     # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonLinuxAMIBasics.html#RepoConfig
-    ignore_changes = ["ami"]
+    ignore_changes = [ami]
   }
 }
 

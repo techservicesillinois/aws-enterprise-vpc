@@ -114,7 +114,7 @@ module "cgw_us-east-1" {
   tags = var.tags
 
   providers = {
-    aws = "aws.us-east-1"
+    aws = aws.us-east-1
   }
 }
 
@@ -124,7 +124,7 @@ module "cgw_us-east-2" {
   tags = var.tags
 
   providers = {
-    aws = "aws.us-east-2"
+    aws = aws.us-east-2
   }
 }
 
@@ -133,7 +133,7 @@ module "cgw_us-east-2" {
 # https://www.terraform.io/docs/providers/aws/r/sns_topic_subscription.html
 
 resource "aws_sns_topic" "vpn-monitor_us-east-2" {
-  provider = "aws.us-east-2"
+  provider = aws.us-east-2
   name     = "vpn-monitor-topic"
   tags     = var.tags
 }
@@ -144,7 +144,7 @@ resource "aws_sns_topic" "vpn-monitor_us-east-2" {
 # https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-cwl.html
 
 resource "aws_iam_role" "flow_logs_role" {
-  provider    = "aws.us-east-2"
+  provider    = aws.us-east-2
   tags        = var.tags
   name_prefix = "flow-logs-cwl-"
   description = "Use this role to create a Flow Log that publishes to CloudWatch Logs"
@@ -168,7 +168,7 @@ EOT
 
 resource "aws_iam_role_policy" "flow_logs_role_inline1" {
   # note: tags not supported
-  provider    = "aws.us-east-2"
+  provider    = aws.us-east-2
   name_prefix = "flow-logs-cwl-"
   role        = aws_iam_role.flow_logs_role.name
 
