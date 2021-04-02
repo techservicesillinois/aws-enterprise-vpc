@@ -35,10 +35,11 @@ variable "availability_zone" {
   type        = string
 }
 
+# map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
 variable "pcx_ids" {
-  description = "Optional list of VPC peering connections e.g. pcx-abcd1234 to use in this subnet's route table"
-  type        = list(string)
-  default     = []
+  description = "Optional map of VPC peering connections e.g. pcx-abcd1234 to use in this subnet's route table"
+  type        = map(string)
+  default     = {}
 }
 
 # map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149

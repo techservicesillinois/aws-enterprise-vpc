@@ -199,7 +199,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
 locals {
   # passing this (not the data source) to subnets ensures that Terraform will
   # create the attachment *before* trying to create routes to it
-  transit_gateway_id_l = aws_ec2_transit_gateway_vpc_attachment.tgw_attach[*].transit_gateway_id
+  transit_gateway_id_local = aws_ec2_transit_gateway_vpc_attachment.tgw_attach[*].transit_gateway_id
 }
 
 /*
@@ -331,20 +331,10 @@ resource "aws_vpc_peering_connection_accepter" "pcx" {
   vpc_peering_connection_id = each.value
   auto_accept               = true
 }
-
-# waiting a few seconds for this to take effect enables subnets to handle new
-# pcx routes successfully on the first try
-resource "null_resource" "wait_for_vpc_peering_connection_accepter" {
-  triggers = {
-    t = join("", values(aws_vpc_peering_connection_accepter.pcx)[*].id)
-  }
-
-  # You may safely comment out this provisioner block if your workstation does
-  # not have a sleep command; it just increases the likelihood that you will
-  # encounter a transient AWS API error and have to re-run `terraform apply`.
-  provisioner "local-exec" {
-    command = "sleep 3"
-  }
+locals {
+  # passing this to subnets ensures that Terraform will accept the peering
+  # connection before trying to read CIDR data from it
+  pcx_ids_local = { for k,v in aws_vpc_peering_connection_accepter.pcx : k=>v.id }
 }
 
 # create Subnets
@@ -393,12 +383,10 @@ module "public1-a-net" {
   assign_ipv6_address_on_creation = false
 
   vpc_id              = aws_vpc.vpc.id
-  pcx_ids             = var.pcx_ids
+  pcx_ids             = local.pcx_ids_local
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  transit_gateway_id  = local.transit_gateway_id_l
+  transit_gateway_id  = local.transit_gateway_id_local
   internet_gateway_id = aws_internet_gateway.igw.id
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "public1-b-net" {
@@ -414,12 +402,10 @@ module "public1-b-net" {
   assign_ipv6_address_on_creation = false
 
   vpc_id              = aws_vpc.vpc.id
-  pcx_ids             = var.pcx_ids
+  pcx_ids             = local.pcx_ids_local
   endpoint_ids        = local.gateway_vpc_endpoint_ids
-  transit_gateway_id  = local.transit_gateway_id_l
+  transit_gateway_id  = local.transit_gateway_id_local
   internet_gateway_id = aws_internet_gateway.igw.id
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "campus1-a-net" {
@@ -431,17 +417,15 @@ module "campus1-a-net" {
   availability_zone = "${var.region}a"
 
   vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = var.pcx_ids
+  pcx_ids            = local.pcx_ids_local
   endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_l
+  transit_gateway_id = local.transit_gateway_id_local
 
   # DEPRECATED
   #vpn_gateway_id = aws_vpn_gateway.vgw.id
 
   # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
   #nat_gateway_id = [module.nat-a.id]
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "campus1-b-net" {
@@ -453,17 +437,15 @@ module "campus1-b-net" {
   availability_zone = "${var.region}b"
 
   vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = var.pcx_ids
+  pcx_ids            = local.pcx_ids_local
   endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_l
+  transit_gateway_id = local.transit_gateway_id_local
 
   # DEPRECATED
   #vpn_gateway_id = aws_vpn_gateway.vgw.id
 
   # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
   #nat_gateway_id = [module.nat-b.id]
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "private1-a-net" {
@@ -479,15 +461,13 @@ module "private1-a-net" {
   assign_ipv6_address_on_creation = false
 
   vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = var.pcx_ids
+  pcx_ids            = local.pcx_ids_local
   endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_l
+  transit_gateway_id = local.transit_gateway_id_local
 
   # Uncomment if your private-facing subnets require outbound Internet access
   #nat_gateway_id         = [module.nat-a.id]
   #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }
 
 module "private1-b-net" {
@@ -503,13 +483,11 @@ module "private1-b-net" {
   assign_ipv6_address_on_creation = false
 
   vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = var.pcx_ids
+  pcx_ids            = local.pcx_ids_local
   endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_l
+  transit_gateway_id = local.transit_gateway_id_local
 
   # Uncomment if your private-facing subnets require outbound Internet access
   #nat_gateway_id         = [module.nat-b.id]
   #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
-
-  depends_on = [null_resource.wait_for_vpc_peering_connection_accepter]
 }

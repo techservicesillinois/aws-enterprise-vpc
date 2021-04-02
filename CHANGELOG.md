@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - SNS topics for VPN monitoring alerts are now per-region
+- pcx_ids (in subnet modules) is now map instead of list, and dependencies are implicit
 
 ### Deprecated
 - campus-facing VPN connections from each VPC (use Transit Gateway instead)

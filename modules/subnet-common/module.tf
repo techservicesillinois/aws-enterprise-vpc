@@ -20,7 +20,8 @@ variable "vpc_id" { type = string }
 variable "name" { type = string }
 variable "cidr_block" { type = string }
 variable "availability_zone" { type = string }
-variable "pcx_ids" { type = list(string) }
+# map with fixed keys (rather than list) until https://github.com/hashicorp/terraform/issues/4149
+variable "pcx_ids" { type = map(string) }
 variable "transit_gateway_id" { type = list(string) }
 
 # NB: re-run Terraform when the prefix list changes, until
@@ -123,20 +124,20 @@ resource "aws_route_table_association" "rtb_assoc" {
 # routes for VPC Peering Connections (if any)
 
 data "aws_vpc_peering_connection" "pcx" {
-  for_each = toset(var.pcx_ids)
+  for_each = var.pcx_ids
 
   id = each.value
 }
 
 resource "aws_route" "pcx" {
   # note: tags not supported
-  for_each = toset(var.pcx_ids)
+  for_each = data.aws_vpc_peering_connection.pcx
 
   route_table_id = aws_route_table.rtb.id
 
-  # pick whichever CIDR block (requester or accepter) isn't _our_ CIDR block
-  destination_cidr_block    = replace(data.aws_vpc_peering_connection.pcx[each.value].peer_cidr_block, data.aws_vpc.vpc.cidr_block, data.aws_vpc_peering_connection.pcx[each.value].cidr_block)
-  vpc_peering_connection_id = data.aws_vpc_peering_connection.pcx[each.value].id
+  # CIDR block of whichever VPC (requester or accepter) isn't _our_ VPC
+  destination_cidr_block    = each.value.vpc_id == var.vpc_id ? each.value.peer_cidr_block : each.value.cidr_block
+  vpc_peering_connection_id = each.value.id
 }
 
 # routes for Gateway VPC Endpoints (if any)
