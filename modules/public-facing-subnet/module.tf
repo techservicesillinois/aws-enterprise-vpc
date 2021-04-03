@@ -78,8 +78,6 @@ variable "transit_gateway_id" {
   }
 }
 
-# NB: re-run Terraform when the prefix list changes, until
-# https://github.com/hashicorp/terraform-provider-aws/issues/15273
 variable "transit_gateway_prefix_lists" {
   description = "Map of existing prefix lists to route toward the Transit Gateway (if provided), specified by either name or id"
   type        = map

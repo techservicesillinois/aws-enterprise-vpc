@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - attach to Transit Gateway shared from the Core Services account
-- routes from VPC to Transit Gateway based on shared prefix lists (but must re-run Terraform when the prefix list changes)
+- routes from VPC to Transit Gateway based on shared prefix lists
 - support Amazon-assigned IPv6 (but disabled by default) for public- and private-facing subnets
 - convenient IAM Role for creating Flow Logs
 - demonstrate cloud-init in example-service
