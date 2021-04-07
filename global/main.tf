@@ -13,18 +13,7 @@ terraform {
     }
   }
 
-  backend "s3" {
-    region         = "us-east-2"
-    dynamodb_table = "terraform"
-    encrypt        = "true"
-
-    # must be unique to your AWS account; try replacing
-    # uiuc-tech-services-sandbox with the friendly name of your account
-    bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
-
-    # must be unique (within bucket) to this repository + environment
-    key = "Shared Networking/global/terraform.tfstate"
-  }
+  # see backend.tf for remote state configuration
 }
 
 ## Inputs (specified in terraform.tfvars)
@@ -48,8 +37,6 @@ variable "tags" {
 
 ## Outputs
 
-/*
-# DEPRECATED
 output "customer_gateway_ids" {
   value = {
     us-east-1 = module.cgw_us-east-1.customer_gateway_ids
@@ -57,13 +44,11 @@ output "customer_gateway_ids" {
   }
 }
 
-# DEPRECATED
 output "vpn_monitor_arn" {
   value = {
     us-east-2 = aws_sns_topic.vpn-monitor_us-east-2.arn
   }
 }
-*/
 
 ## Providers
 
@@ -103,10 +88,9 @@ resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-2" {
   share_arn = each.key
 }
 
-/*
-# This solution is DEPRECATED in favor of Transit Gateway.
-
 # Customer Gateways (per region, add more regions if needed)
+#
+# Note: this solution is deprecated in favor of Transit Gateway.
 
 module "cgw_us-east-1" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.10"
@@ -137,7 +121,6 @@ resource "aws_sns_topic" "vpn-monitor_us-east-2" {
   name     = "vpn-monitor-topic"
   tags     = var.tags
 }
-*/
 
 # Optional IAM Role (regionless) which can be used to publish Flow Logs to
 # CloudWatch Logs, created here for convenience: see

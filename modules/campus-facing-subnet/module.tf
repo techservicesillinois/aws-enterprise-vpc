@@ -61,13 +61,6 @@ variable "nat_gateway_id" {
   }
 }
 
-# DEPRECATED in favor of Transit Gateway
-variable "vpn_gateway_id" {
-  description = "VPN Gateway for campus-facing routes, e.g. vgw-abcd1234"
-  type        = string
-  default     = null
-}
-
 # singleton list to work around computed count until https://github.com/hashicorp/terraform/issues/4149
 variable "transit_gateway_id" {
   description = "Optional Transit Gateway for cloud-facing and campus-facing routes, e.g. tgw-abcd1234, wrapped in singleton list"
@@ -93,6 +86,12 @@ variable "transit_gateway_prefix_lists" {
 variable "default_ipv4_route_via_transit_gateway" {
   description = "Optional override (defaults to true iff not using a NAT gateway)"
   type        = bool
+  default     = null
+}
+
+variable "vpn_gateway_id" {
+  description = "Optional VPN Gateway for campus-facing routes, e.g. vgw-abcd1234 (note: deprecated in favor of Transit Gateway)"
+  type        = string
   default     = null
 }
 

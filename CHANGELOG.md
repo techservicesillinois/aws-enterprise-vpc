@@ -16,14 +16,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - requires Terraform 0.14.x
-- default vpc/main.tf now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
+- common choices can now be made in terraform.tfvars rather than editing main.tf
+- backend configuration for Terraform remote state is moved to backend.tf
+- default vpc environment now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
+- default vpc environment now omits private-facing subnets
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - SNS topics for VPN monitoring alerts are now per-region
 - pcx_ids (in subnet modules) is now map instead of list, and dependencies are implicit
 
 ### Deprecated
-- campus-facing VPN connections from each VPC (use Transit Gateway instead)
+- dedicated campus-facing VPN connections from each VPC (use Transit Gateway instead)
 
 ### Removed
 - old custom "VPNStatus" metrics solution (Lambda deployed via CloudFormation)

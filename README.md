@@ -66,21 +66,24 @@ You will need:
     Note that you do _not_ need your own copy of the module code; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this online repository.
 
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
+   * in `global/backend.tf`:
+     - bucket
    * in `global/terraform.tfvars`:
      - account_id
      - resource_share_arns
-   * in `global/main.tf`:
-     - bucket
+   * in `vpc/backend.tf`:
+     - bucket (2 occurrences, same value)
    * in `vpc/terraform.tfvars`:
      - account_id
      - vpc_short_name
-   * in `vpc/main.tf`:
-     - bucket (2 occurrences, same value)
+     - vpc_cidr_block
      - cidr_block (multiple occurrences, all different values)
+
+Hint: <http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc> can help you with subnet math.  Use e.g. `ipcalc 10.x.y.0/24 26 --nobinary` to display all possible /26 subnets within your VPC allocation, and `ipcalc 10.x.y.0/24 27 --nobinary` to display all possible /27 subnets.  You can mix and match subnets of different sizes to suit your needs as long as the actual addresses don't overlap (i.e. the Broadcast address at the end of the first subnet you choose must be smaller than the base Network address at the beginning of the second one, and so on).
 
 You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.
 
-If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with six subnets (all three types duplicated across two Availability Zones) as shown in the Detailed Enterprise VPC Example diagram:
+If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with four subnets (one public-facing and one campus-facing in each of two Availability Zones), i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
@@ -139,20 +142,17 @@ To set up a new workstation:
 
 5. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
 
-   * Edit `vpc/terraform.tfvars` to specify the IPv4 addresses of the Core Services Resolvers in the Core Services VPC with which your VPC has a peering connection, e.g.
-
-         core_services_resolvers = ["10.224.1.50", "10.224.1.100"]
-
-   * Edit `vpc/rdns.tf` and uncomment _only one section_, depending on which option you need.
-
-     _Note_: be sure to read and understand [`modules/rdns-forwarder/README.md`](modules/rdns-forwarder/README.md) before deploying Option 3.
+   * Edit `vpc/terraform.tfvars` to set `rdns_option` and `core_services_resolvers`
 
    * Deploy the `vpc` environment again (as above).
+
+   _Note_: be sure to read and understand [`modules/rdns-forwarder/README.md`](modules/rdns-forwarder/README.md) before deploying Option 3.
+
 
 
 ### Example Service
 
-If you like, you can now deploy the `example-service` environment to launch an EC2 instance in one of your new public-facing subnets (note that you will need to edit `example-service/main.tf` and `example-service/terraform.tfvars` first).
+If you like, you can now deploy the `example-service` environment to launch an EC2 instance in one of your new public-facing subnets (note that you will need to edit `example-service/backend.tf` and `example-service/terraform.tfvars` first).
 
     cd example-service
     terraform init
@@ -188,7 +188,7 @@ After your VPC is deployed, the next logical step is to write additional infrast
 
 To create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `other-vpc/` and modify the necessary values in the new files.
 
-**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/main.tf` before running any Terraform commands!
+**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/backend.tf` before running any Terraform commands!
 
     .
     ├── global/
@@ -202,7 +202,7 @@ You may find it convenient to name the environment directories after the VPCs th
 
 To create your new VPC in a different region, simply edit the `region` variable value in e.g. `other-vpc/terraform.tfvars`.
 
-* This does _not_ require modifying the hardcoded region names in `other-vpc/main.tf` (or the prerequisite steps of this document); those singleton items are independent of which region the VPC itself is deployed into.
+* This does _not_ require modifying the hardcoded region names in `other-vpc/backend.tf` (or the prerequisite steps of this document); those singleton items are independent of which region the VPC itself is deployed into.
 
 * You _may_ need to add more per-region singleton resources in `global/main.tf` (following the established pattern)
 

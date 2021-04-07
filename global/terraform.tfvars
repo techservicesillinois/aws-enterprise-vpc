@@ -1,4 +1,4 @@
-# This file supplies values for the variables defined in main.tf
+# This file supplies values for the variables defined in *.tf
 #
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
@@ -6,7 +6,7 @@
 account_id = "999999999999" #FIXME
 
 # Add resource share ARNs here *after* they are shared with your account
-resource_share_arns = [
+resource_share_arns = [ #FIXME
 #  "arn:aws:ram:us-east-1:123456789012:resource-share/abcd1234",
 #  "arn:aws:ram:us-east-2:123456789012:resource-share/efgh5678",
 ]

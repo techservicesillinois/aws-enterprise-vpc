@@ -9,7 +9,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 2.32"
+      version = "~> 3.35"
     }
     null = {
       source  = "hashicorp/null"
@@ -17,31 +17,7 @@ terraform {
     }
   }
 
-  backend "s3" {
-    region         = "us-east-2"
-    dynamodb_table = "terraform"
-    encrypt        = "true"
-
-    # must be unique to your AWS account; try replacing
-    # uiuc-tech-services-sandbox with the friendly name of your account
-    bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
-
-    # must be unique (within bucket) to this repository + environment
-    key = "Shared Networking/vpc/terraform.tfstate"
-  }
-}
-
-## Read remote state from global environment
-
-data "terraform_remote_state" "global" {
-  backend = "s3"
-
-  # must match ../global/main.tf
-  config = {
-    region = "us-east-2"
-    bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu" #FIXME
-    key    = "Shared Networking/global/terraform.tfstate"
-  }
+  # see backend.tf for remote state configuration
 }
 
 ## Inputs (specified in terraform.tfvars)
@@ -57,13 +33,30 @@ variable "region" {
 }
 
 variable "vpc_short_name" {
-  description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
+  description = "short name of this VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
   type        = string
+}
+
+variable "vpc_cidr_block" {
+  description = "entire IPv4 CIDR block allocated by Technology Services for this VPC"
+  type        = string
+}
+
+variable "assign_generated_ipv6_cidr_block" {
+  description = "Request an Amazon-provided IPv6 CIDR block (/56) for this VPC?"
+  type        = bool
+  default     = false
+}
+
+variable "subnets_by_availability_zone_suffix" {
+  description = "Maps availability zone suffix (e.g. 'a' for us-east-2a) to subnet key to subnet details"
+  type        = map
 }
 
 variable "use_transit_gateway" {
   description = "Should this VPC attach to (and create routes toward) a Transit Gateway?"
   type        = bool
+  default     = true
 }
 
 variable "transit_gateway_id" {
@@ -73,6 +66,24 @@ variable "transit_gateway_id" {
   # with your AWS account via Resource Access Manager), so we can choose that
   # one automatically
   default     = null
+}
+
+variable "transit_gateway_attachment_subnets" {
+  description = "Specify one subnet per Availability Zone to be used for the Transit Gateway attachment (may be public-, campus-, or private-facing).  Maps availability zone suffix (e.g. 'a' for us-east-2a) to subnet key"
+  type        = map(string)
+  default     = {}
+}
+
+variable "use_dedicated_vpn" {
+  description = "Should this VPC create dedicated VPN connections?  (note: this solution is deprecated in favor of Transit Gateway)"
+  type        = bool
+  default     = false
+}
+
+variable "nat_gateways" {
+  description = "Optionally specify one NAT gateway per Availability Zone (attached to a public-facing subnet).  Maps availability zone suffix (e.g. 'a' for us-east-2a) to subnet key"
+  type        = map(string)
+  default     = {}
 }
 
 variable "pcx_ids" {
@@ -117,8 +128,6 @@ output "vpc_region" {
   value = var.region
 }
 
-# note: additional outputs are specified in the VPN section below
-
 ## Providers
 
 # default provider for chosen region
@@ -140,17 +149,17 @@ resource "aws_vpc" "vpc" {
 
   # This is the entire IPv4 CIDR block allocated by Technology Services for
   # this Enterprise VPC
-  cidr_block = "192.168.0.0/24" #FIXME
+  cidr_block = var.vpc_cidr_block
 
-  # Request an Amazon-provided IPv6 CIDR block (/56) for this VPC
-  #assign_generated_ipv6_cidr_block = true
+  # Request an Amazon-provided IPv6 CIDR block (/56) for this VPC?
+  assign_generated_ipv6_cidr_block = var.assign_generated_ipv6_cidr_block
 
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  # Comment this out if you really need to destroy your entire VPC.  Note: if
-  # you subsequently recreate it, you will need to contact Technology Services
-  # again to re-enable Enterprise Networking features for the new VPC.
+  # Comment this out if you really need to destroy your entire VPC.  Note that
+  # if you subsequently recreate it, you will need to contact Technology
+  # Services again to re-enable Enterprise Networking features for the new VPC.
   lifecycle {
     prevent_destroy = true
   }
@@ -171,9 +180,10 @@ resource "aws_internet_gateway" "igw" {
 data "aws_ec2_transit_gateway" "tgw" {
   count = var.use_transit_gateway ? 1 : 0
 
-  # NB: may be null if we only have one TGW in the region
+  # NB: var can be null if we only have one TGW in the region
   id = var.transit_gateway_id
 }
+
 resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
   count = var.use_transit_gateway ? 1 : 0
 
@@ -184,54 +194,65 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
   transit_gateway_id = data.aws_ec2_transit_gateway.tgw[0].id
   vpc_id             = aws_vpc.vpc.id
 
-  # Subnets are defined further down.  Since the Core Services TGW will only
-  # send you traffic destined for your own VPC, it doesn't matter whether you
-  # use public-facing, campus-facing, or private-facing subnets here.
-  subnet_ids = [module.public1-a-net.id, module.public1-b-net.id]
+  # Since we know the only traffic we receive from the Core Services TGW will
+  # be destined for this VPC, it doesn't matter whether we use public-facing,
+  # campus-facing, or private-facing subnets for the attachment.
+  #
+  # https://github.com/hashicorp/terraform/issues/28330 workaround: avoid
+  # dependency cycles by using only hardcoded static literal references (add
+  # lines if needed)
+  #subnet_ids = [for k,v in var.transit_gateway_attachment_subnets :
+  #  try(module.public-facing-subnet[v].id, module.campus-facing-subnet[v].id, module.private-facing-subnet[v].id,
+  #    # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
+  #    # so we know which occurrence failed
+  #    file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${v}'"))]
+  subnet_ids = [for k,v in var.transit_gateway_attachment_subnets :
+    v == "public1-a-net" ? module.public-facing-subnet["public1-a-net"].id :
+    v == "public1-b-net" ? module.public-facing-subnet["public1-b-net"].id :
+    v == "campus1-a-net" ? module.campus-facing-subnet["campus1-a-net"].id :
+    v == "campus1-b-net" ? module.campus-facing-subnet["campus1-b-net"].id :
+    v == "private1-a-net" ? module.private-facing-subnet["private1-a-net"].id :
+    v == "private1-b-net" ? module.private-facing-subnet["private1-b-net"].id :
+    # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
+    file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${v}'")]
 
-  # Comment this out if you really need to destroy the attachment.  Note: if
-  # you subsequently recreate it, you will need to contact Technology Services
-  # again to reprovision the Core Services side.
+  # Comment this out if you really need to destroy the attachment.  Note that
+  # if you subsequently recreate it, you will need to contact Technology
+  # Services again to reprovision the Core Services side.
   lifecycle {
     prevent_destroy = true
   }
 }
+
 locals {
-  # passing this (not the data source) to subnets ensures that Terraform will
-  # create the attachment *before* trying to create routes to it
+  # passing this (instead of the data source) to subnets ensures that Terraform
+  # will create the attachment *before* trying to create routes to it, but also
+  # necessitates the above workaround to avoid dependency cycles for the subnet
+  # modules used for the attachment.  Currently this behaves well in the common
+  # case, but should it ever cause insurmountable problems we can use the
+  # alternative version below and just apply multiple times.
   transit_gateway_id_local = aws_ec2_transit_gateway_vpc_attachment.tgw_attach[*].transit_gateway_id
+  #transit_gateway_id_local = data.aws_ec2_transit_gateway.tgw[*].id
 }
 
-/*
-# create a NAT Gateway in each Availability Zone
+# create one NAT gateway in each Availability Zone (if needed)
 #
-# Uncomment this section if you need private-facing subnets with outbound
-# Internet access.  (Note: campus-facing subnets can use NAT gateways too, but
-# by default they use the Transit Gateway for egress so we can save money by
-# not deploying NAT gateways).
+# NAT gateways are important if you need private-facing subnets with outbound
+# Internet access.  Campus-facing subnets can use NAT gateways too, but can
+# also use the Transit Gateway for egress (which potentially saves money by not
+# deploying NAT gateways).
 
-module "nat-a" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
-
-  tags = merge(var.tags, {
-    Name = "${var.vpc_short_name}-nat-a"
-  })
-
-  # this public-facing subnet is defined further down
-  public_subnet_id = module.public1-a-net.id
-}
-
-module "nat-b" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
+module "nat" {
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
+  for_each = { for az_suffix,v in var.nat_gateways : "${var.region}${az_suffix}" => v }
 
   tags = merge(var.tags, {
-    Name = "${var.vpc_short_name}-nat-b"
+    Name = "${var.vpc_short_name}-nat-${each.key}"
   })
 
-  # this public-facing subnet is defined further down
-  public_subnet_id = module.public1-b-net.id
+  # Subnets are defined further down.
+  public_subnet_id = module.public-facing-subnet[each.value].id
 }
-*/
 
 # create an IPv6 Egress-Only Internet Gateway for private-facing subnets
 #
@@ -243,13 +264,14 @@ resource "aws_egress_only_internet_gateway" "eigw" {
   vpc_id = aws_vpc.vpc.id
 }
 
-/*
 # create a VPN Gateway with a VPN Connection to each of the Customer Gateways
 # defined in the global environment
 #
-# This solution is DEPRECATED in favor of Transit Gateway.
+# Note: this solution is deprecated in favor of Transit Gateway.
 
 resource "aws_vpn_gateway" "vgw" {
+  count = var.use_dedicated_vpn ? 1 : 0
+
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vgw"
   })
@@ -260,68 +282,73 @@ resource "aws_vpn_gateway" "vgw" {
 
 module "vpn1" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.10"
+  count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
   name                = "${var.vpc_short_name}-vpn1"
-  vpn_gateway_id      = aws_vpn_gateway.vgw.id
+  vpn_gateway_id      = aws_vpn_gateway.vgw[0].id
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws1-pub"]
   create_alarm        = true
 
-  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
-  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
-  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  alarm_actions             = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  insufficient_data_actions = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
 output "vpn1_customer_gateway_configuration" {
   sensitive = true
-  value     = module.vpn1.customer_gateway_configuration
+  value     = one(module.vpn1[*].customer_gateway_configuration)
 }
 
 resource "null_resource" "vpn1" {
+  count = var.use_dedicated_vpn ? 1 : 0
+
   triggers = {
-    t = module.vpn1.id
+    t = module.vpn1[0].id
   }
 
   # Comment this out if you really need to destroy the VPN connection.  Note: if
   # you subsequently recreate it, you will need to contact Technology Services
   # again to rebuild the on-campus configuration.
   lifecycle {
-    #prevent_destroy = true
+    prevent_destroy = true
   }
 }
 
 module "vpn2" {
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.10"
+  count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
   name                = "${var.vpc_short_name}-vpn2"
-  vpn_gateway_id      = aws_vpn_gateway.vgw.id
+  vpn_gateway_id      = aws_vpn_gateway.vgw[0].id
   customer_gateway_id = data.terraform_remote_state.global.outputs.customer_gateway_ids[var.region]["vpnhub-aws2-pub"]
   create_alarm        = true
 
-  alarm_actions             = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
-  insufficient_data_actions = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
-  ok_actions                = [data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]]
+  alarm_actions             = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  insufficient_data_actions = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
 output "vpn2_customer_gateway_configuration" {
   sensitive = true
-  value     = module.vpn2.customer_gateway_configuration
+  value     = one(module.vpn2[*].customer_gateway_configuration)
 }
 
 resource "null_resource" "vpn2" {
+  count = var.use_dedicated_vpn ? 1 : 0
+
   triggers = {
-    t = module.vpn2.id
+    t = module.vpn2[0].id
   }
 
   # Comment this out if you really need to destroy the VPN connection.  Note: if
   # you subsequently recreate it, you will need to contact Technology Services
   # again to rebuild the on-campus configuration.
   lifecycle {
-    #prevent_destroy = true
+    prevent_destroy = true
   }
 }
-*/
 
 # accept the specified VPC Peering Connections
 
@@ -331,53 +358,55 @@ resource "aws_vpc_peering_connection_accepter" "pcx" {
   vpc_peering_connection_id = each.value
   auto_accept               = true
 }
+
 locals {
   # passing this to subnets ensures that Terraform will accept the peering
   # connection before trying to read CIDR data from it
   pcx_ids_local = { for k,v in aws_vpc_peering_connection_accepter.pcx : k=>v.id }
 }
 
-# create Subnets
+# create Subnets as specified
 #
-# Each subnet's cidr_block must be a subset of the overall VPC cidr_block.
+# Each subnet's cidr_block must be a subset of the overall vpc_cidr_block.
 # Subnets do not need to be the same size; you can divide your IPv4 allocation
 # in whatever way best suits your needs.
 #
+# IPv6 subnet CIDRs are always /64, and will be calculated from the VPC's IPv6
+# CIDR block once it is known.
+#
 # Note that you can't resize or renumber existing Subnets in AWS once you
-# create them.  You _can_ delete and re-create them with Terraform by modifying
-# this configuration code, but they will need to be emptied of service-oriented
-# resources first.
+# create them.  You _can_ delete and re-create them with Terraform, but they
+# will need to be emptied of service-oriented resources first.
 #
-# By default we will create six subnets: one of each type (public-facing,
-# campus-facing, and private-facing) in each of two Availability Zones.  You
-# can modify this section as desired to create more or fewer subnets, customize
-# their names, etc.  If you add subnets, pay attention to each subnet's
-# Availability Zone, and be sure to choose the correct NAT Gateway (if
-# applicable).  Note that each type of subnet uses a separate Terraform module
-# which accepts slightly different parameters.
-#
-# You may omit ipv6_cidr_block, endpoint_ids, nat_gateway_id, and/or
-# egress_only_gateway_id if you don't want your subnets to use those things.
+# Each type of subnet (public-facing, campus-facing, and private-facing) uses a
+# separate Terraform module which accepts slightly different parameters.
 
 locals {
-  # calculate first several /64 subnets of our IPv6 CIDR block (or nulls if not
-  # using IPv6)
-  ipv6_subnet_cidrs = [
-    for i in range(4) :
-    (aws_vpc.vpc.ipv6_cidr_block == "" ? null
-      : cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, i)
-    )
-  ]
+  # rearrange with availability_zone inside each object, and calculate IPv6
+  # cidr blocks (if any) based on the actual allocation
+  subnet_details = merge([ for az_suffix,v in var.subnets_by_availability_zone_suffix : { for name_suffix,d in v :
+    name_suffix => {
+      type              = d.type
+      availability_zone = "${var.region}${az_suffix}"
+      cidr_block        = d.cidr_block
+      # e.g. xx03::/64 for ipv6_index=3, or null if not using IPv6
+      ipv6_cidr_block   = try(cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 64 - split("/",aws_vpc.vpc.ipv6_cidr_block)[1], d.ipv6_index), null)
+    }
+  }]...)
+
+  # see endpoints.tf
+  gateway_vpc_endpoint_ids = { for k,v in aws_vpc_endpoint.gateway : k=>v.id }
 }
 
-module "public1-a-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
+module "public-facing-subnet" {
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
+  for_each = { for k,v in local.subnet_details: k=>v if v.type == "public" }
 
   tags              = var.tags
-  name              = "${var.vpc_short_name}-public1-a-net"
-  cidr_block        = "192.168.0.0/27"           #FIXME
-  ipv6_cidr_block   = local.ipv6_subnet_cidrs[0] # xx00::/64
-  availability_zone = "${var.region}a"
+  name              = "${var.vpc_short_name}-${each.key}"
+  availability_zone = each.value.availability_zone
+  cidr_block        = each.value.cidr_block
+  ipv6_cidr_block   = each.value.ipv6_cidr_block
 
   # should interfaces in this subnet automatically get IPv6 addresses?
   assign_ipv6_address_on_creation = false
@@ -389,73 +418,36 @@ module "public1-a-net" {
   internet_gateway_id = aws_internet_gateway.igw.id
 }
 
-module "public1-b-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
+module "campus-facing-subnet" {
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
+  for_each = { for k,v in local.subnet_details: k=>v if v.type == "campus" }
 
   tags              = var.tags
-  name              = "${var.vpc_short_name}-public1-b-net"
-  cidr_block        = "192.168.0.32/27"          #FIXME
-  ipv6_cidr_block   = local.ipv6_subnet_cidrs[1] # xx01::/64
-  availability_zone = "${var.region}b"
-
-  # should interfaces in this subnet automatically get IPv6 addresses?
-  assign_ipv6_address_on_creation = false
-
-  vpc_id              = aws_vpc.vpc.id
-  pcx_ids             = local.pcx_ids_local
-  endpoint_ids        = local.gateway_vpc_endpoint_ids
-  transit_gateway_id  = local.transit_gateway_id_local
-  internet_gateway_id = aws_internet_gateway.igw.id
-}
-
-module "campus1-a-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
-
-  tags              = var.tags
-  name              = "${var.vpc_short_name}-campus1-a-net"
-  cidr_block        = "192.168.0.64/27" #FIXME
-  availability_zone = "${var.region}a"
+  name              = "${var.vpc_short_name}-${each.key}"
+  availability_zone = each.value.availability_zone
+  cidr_block        = each.value.cidr_block
+  # ipv6 not supported
 
   vpc_id             = aws_vpc.vpc.id
   pcx_ids            = local.pcx_ids_local
   endpoint_ids       = local.gateway_vpc_endpoint_ids
   transit_gateway_id = local.transit_gateway_id_local
+  vpn_gateway_id     = one(aws_vpn_gateway.vgw[*].id)
 
-  # DEPRECATED
-  #vpn_gateway_id = aws_vpn_gateway.vgw.id
-
-  # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
-  #nat_gateway_id = [module.nat-a.id]
+  # outbound IPv4 Internet access via NAT gateway in this AZ, if any
+  # (NB: if no NAT gateway, campus-facing subnet will use TGW for egress)
+  nat_gateway_id = [for k,v in module.nat: v.id if k == each.value.availability_zone]
 }
 
-module "campus1-b-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
+module "private-facing-subnet" {
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
+  for_each = { for k,v in local.subnet_details: k=>v if v.type == "private" }
 
   tags              = var.tags
-  name              = "${var.vpc_short_name}-campus1-b-net"
-  cidr_block        = "192.168.0.96/27" #FIXME
-  availability_zone = "${var.region}b"
-
-  vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = local.pcx_ids_local
-  endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_local
-
-  # DEPRECATED
-  #vpn_gateway_id = aws_vpn_gateway.vgw.id
-
-  # Uncomment to use NAT Gateway instead of TGW for outbound Internet access
-  #nat_gateway_id = [module.nat-b.id]
-}
-
-module "private1-a-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
-
-  tags              = var.tags
-  name              = "${var.vpc_short_name}-private1-a-net"
-  cidr_block        = "192.168.0.128/27"         #FIXME
-  ipv6_cidr_block   = local.ipv6_subnet_cidrs[2] # xx02::/64
-  availability_zone = "${var.region}a"
+  name              = "${var.vpc_short_name}-${each.key}"
+  availability_zone = each.value.availability_zone
+  cidr_block        = each.value.cidr_block
+  ipv6_cidr_block   = each.value.ipv6_cidr_block
 
   # should interfaces in this subnet automatically get IPv6 addresses?
   assign_ipv6_address_on_creation = false
@@ -465,29 +457,10 @@ module "private1-a-net" {
   endpoint_ids       = local.gateway_vpc_endpoint_ids
   transit_gateway_id = local.transit_gateway_id_local
 
-  # Uncomment if your private-facing subnets require outbound Internet access
-  #nat_gateway_id         = [module.nat-a.id]
-  #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
-}
+  # outbound IPv4 Internet access via NAT gateway in this AZ, if any
+  nat_gateway_id = [for k,v in module.nat: v.id if k == each.value.availability_zone]
 
-module "private1-b-net" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
-
-  tags              = var.tags
-  name              = "${var.vpc_short_name}-private1-b-net"
-  cidr_block        = "192.168.0.160/27"         #FIXME
-  ipv6_cidr_block   = local.ipv6_subnet_cidrs[3] # xx03::/64
-  availability_zone = "${var.region}b"
-
-  # should interfaces in this subnet automatically get IPv6 addresses?
-  assign_ipv6_address_on_creation = false
-
-  vpc_id             = aws_vpc.vpc.id
-  pcx_ids            = local.pcx_ids_local
-  endpoint_ids       = local.gateway_vpc_endpoint_ids
-  transit_gateway_id = local.transit_gateway_id_local
-
-  # Uncomment if your private-facing subnets require outbound Internet access
-  #nat_gateway_id         = [module.nat-b.id]
-  #egress_only_gateway_id = [aws_egress_only_internet_gateway.eigw.id]
+  # outbound IPv6 Internet access via EIGW, but only if we also have NAT for
+  # IPv4 (to avoid a confusing disparity)
+  egress_only_gateway_id = contains(keys(module.nat),each.value.availability_zone) ? [aws_egress_only_internet_gateway.eigw.id] : []
 }
