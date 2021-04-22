@@ -25,39 +25,17 @@ One thing you should know: **if at first you don't succeed, try 'apply' again.**
 
 You will need:
 
+  * a suitably configured workstation (see "Workstation Setup" further down)
+
   * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html)
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * an S3 bucket **with versioning enabled** for storing [Terraform state](https://www.terraform.io/docs/state/), and a DynamoDB table for state locking (see also https://www.terraform.io/docs/backends/types/s3.html).
+  * an S3 bucket **with versioning enabled** and a DynamoDB table with a specific schema, for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html).
+
+    Use [`modules/bootstrap/README.md`](modules/bootstrap/README.md) to create these resources (only once per AWS account).
 
     _Caution_: always obtain expert advice before rolling back or modifying a Terraform state file!
-
-    To create these resources (once per AWS account):
-
-    1. Set up the AWS Command Line Interface on your workstation (see "Workstation Setup" further down).
-
-    2. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
-
-       * S3 bucket names are _globally_ unique, so you must choose one that is not already in use by another AWS account. One possible strategy is to use the pattern
-
-             bucket = "terraform.uiuc-tech-services-sandbox.aws.illinois.edu"
-
-         replacing 'uiuc-tech-services-sandbox' with the friendly name of your AWS account.
-
-    3. Use AWS CLI to create the chosen bucket (replacing 'FIXME') and enable versioning:
-
-           aws s3api create-bucket --create-bucket-configuration LocationConstraint=us-east-2 \
-             --bucket FIXME
-           aws s3api put-bucket-versioning --versioning-configuration Status=Enabled \
-             --bucket FIXME
-
-    4. Use AWS CLI to create a DynamoDB table for state locking, called "terraform" (this name does _not_ need to be globally unique):
-
-           aws dynamodb create-table --region us-east-2 --table-name terraform \
-             --attribute-definitions AttributeName=LockID,AttributeType=S \
-             --key-schema AttributeName=LockID,KeyType=HASH \
-             --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
 
   * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.
 

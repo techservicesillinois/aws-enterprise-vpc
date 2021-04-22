@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - demonstrate cloud-init in example-service
 - vpn-connection now supports Transit Gateway (as well as VPN Gateway)
 - accept Resource Access Manager (RAM) shares from other accounts
+- Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
 
 ### Changed
 - requires Terraform 0.14.x
