@@ -10,9 +10,9 @@ There is no one-size-fits-all blueprint for an entire VPC; while they all genera
 
   3. an example service environment (`example-service/`) which demonstrates how to look up previously-created VPC and Subnet resources by tag:Name in order to build service-oriented resources on top of them, in this case launching an EC2 instance into one of the subnets.
 
-_Note_: these same building blocks can also be used to construct an Independent VPC.
+_Note:_ these same building blocks can also be used to construct an Independent VPC.
 
-If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction.  You can also consult Terraform's official [Getting Started Guide](https://www.terraform.io/intro/getting-started/install.html).  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
+If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, and there is also an official [Introduction to Terraform](https://www.terraform.io/intro/) which you may find helpful.  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
 
 One thing you should know: **if at first you don't succeed, try 'apply' again.**  Terraform is usually good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once simply because Terraform didn't wait long enough between steps.
 
@@ -25,23 +25,23 @@ One thing you should know: **if at first you don't succeed, try 'apply' again.**
 
 You will need:
 
-  * a suitably configured workstation (see "Workstation Setup" further down)
-
   * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html)
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * an S3 bucket **with versioning enabled** and a DynamoDB table with a specific schema, for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html).
+  * a suitably configured workstation (see "Workstation Setup" further down)
 
-    Use [`modules/bootstrap/README.md`](modules/bootstrap/README.md) to create these resources (only once per AWS account).
+  * an S3 bucket **with versioning enabled** and a DynamoDB table with a specific schema, for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html)
 
-    _Caution_: always obtain expert advice before rolling back or modifying a Terraform state file!
+    _Caution:_ always obtain expert advice before rolling back or modifying a Terraform state file!
 
-  * your own copy of the sample environment code, in your own source control repository, **customized** to reflect your AWS account and the specific subnets and other components you want your VPC to comprise.
+    See [`modules/bootstrap/README.md`](modules/bootstrap/README.md) to create these resources (only once per AWS account).
 
-    Download the [latest release of this repository](https://github.com/techservicesillinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
+  * your own copy of the sample environment code, **customized** for your desired VPC and **stored in your own source control repository**
 
-    Note that you do _not_ need your own copy of the module code; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this online repository.
+    Download the [latest release of this public repository](https://github.com/techservicesillinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
+
+    Note that you do _not_ need your own copy of the `modules/` directory; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this public repository.
 
 **At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
    * in `global/backend.tf`:
@@ -57,7 +57,9 @@ You will need:
      - vpc_cidr_block
      - cidr_block (multiple occurrences, all different values)
 
-Hint: <http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc> can help you with subnet math.  Use e.g. `ipcalc 10.x.y.0/24 26 --nobinary` to display all possible /26 subnets within your VPC allocation, and `ipcalc 10.x.y.0/24 27 --nobinary` to display all possible /27 subnets.  You can mix and match subnets of different sizes to suit your needs as long as the actual addresses don't overlap (i.e. the Broadcast address at the end of the first subnet you choose must be smaller than the base Network address at the beginning of the second one, and so on).
+_Hint:_ <http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc> can help you with subnet math.
+  * Use e.g. `ipcalc 10.x.y.0/24 26 --nobinary` to display all possible /26 subnets within your VPC allocation, and `ipcalc 10.x.y.0/24 27 --nobinary` to display all possible /27 subnets.
+  * You are free to choose a combination of differently sized subnets, so long as the actual addresses don't overlap (i.e. the Broadcast address at the end of your first subnet must be smaller than the base Network address at the beginning of your second one, and so on).
 
 You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.
 
@@ -67,35 +69,69 @@ If you leave everything else unchanged, the result will be an Enterprise VPC in 
 
 ### Workstation Setup
 
-_Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
-
-You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow [the golden rule of Terraform](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
+You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow the ["golden rule of Terraform"](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
 > **"The master branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
 
-To set up a new workstation:
+If you just want to deploy your VPC as quickly as possible, you can install Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this:
 
-1. Download [Terraform](https://www.terraform.io/downloads.html) for your system, extract the binary from the .zip archive, and put it somewhere on your PATH (e.g. `/usr/local/bin/terraform`)
+    mkdir -p ~/.local/bin
+    wget -P /tmp https://releases.hashicorp.com/terraform/0.15.0/terraform_0.15.0_linux_amd64.zip
+    unzip -d ~/.local/bin /tmp/terraform_0.15.0_linux_amd64.zip
+    terraform --version
 
-2. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and configure it with an appropriate set of credentials to access your AWS account.
+However, if you're interested in using Terraform for other infrastructure-as-code (IaC) projects beyond this one, it is worthwhile to go ahead and set up your regular workstation:
 
-   * You may find it convenient to use a named profile in order to easily switch between multiple AWS accounts on the same workstation:
+  _Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
+
+  1. [Download Terraform](https://www.terraform.io/downloads.html) for your system, extract the binary from the .zip archive, and put it somewhere on your PATH (e.g. `/usr/local/bin/terraform` or `~/.local/bin/terraform`)
+
+  2. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and optionally the [awscli-login plugin](https://github.com/techservicesillinois/awscli-login).  One convenient way to do this is:
+
+         pip3 install --user --upgrade awscli awscli-login
+
+     _Note:_ the `--user` scheme installs executables in the bin subdirectory of `python3 -m site --user-base` (often `~/.local/bin`); make sure this directory is on your PATH.
+
+  3. Configure AWS CLI to use awscli-login:
+
+         aws configure set plugins.login awscli_login
+
+     and configure a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) which will use Shibboleth authentication to assume an appropriate Role in your AWS account:
 
          aws configure --profile uiuc-tech-services-sandbox
-         AWS Access Key ID [None]: XXX
-         AWS Secret Access Key [None]: YYY
-         Default region name [None]: us-east-2
-         Default output format [None]: json
+          AWS Access Key ID [None]: 
+          AWS Secret Access Key [None]: 
+          Default region name [None]: us-east-2
+          Default output format [None]: json
 
-     If you do, set the `AWS_PROFILE` environment variable so that Terraform (as well as the AWS CLI itself) will know which set of credentials to use:
+         aws --profile uiuc-tech-services-sandbox login configure
+          ECP Endpoint URL [None]: https://shibboleth.illinois.edu/idp/profile/SAML2/SOAP/ECP
+          Username [None]: yournetid
+          Enable Keyring [False]: 
+          Duo Factor [None]: passcode
+          Role ARN [None]: arn:aws:iam::378517677616:role/TechServicesStaff
+
+     The profile name "uiuc-tech-services-sandbox" is arbitrary, but the Role ARN identifies a specific role to which you have been [granted access](https://answers.uillinois.edu/illinois/page.php?id=71883).
+
+     Duo Factor may be `auto`, `push`, `passcode`, `sms`, or `phone`, or you can leave it blank in the profile to be prompted each time.  See also <https://github.com/techservicesillinois/awscli-login>
+
+  4. Test that you can successfully interact with your AWS account:
 
          export AWS_PROFILE=uiuc-tech-services-sandbox
+         aws login
 
-   * Verify that you can successfully run `aws ec2 describe-vpcs` from the command line and get a response.
+         aws sts get-caller-identity
+         aws iam list-account-aliases --output text
+         aws ec2 describe-vpcs --output text
+
+         aws logout
+         unset AWS_PROFILE
+
+     Safety tip: when finished, `aws logout` from the profile and either exit your current shell or explicitly unset `AWS_PROFILE` to minimize the opportunity for accidents.
 
 
 ### Deployment Steps
 
-1. Set `AWS_PROFILE` if needed (see above).
+1. Set the `AWS_PROFILE` environment variable and run `aws login` if needed (see above).
 
 2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account rather than to a single VPC.
 
@@ -124,7 +160,7 @@ To set up a new workstation:
 
    * Deploy the `vpc` environment again (as above).
 
-   _Note_: be sure to read and understand [`modules/rdns-forwarder/README.md`](modules/rdns-forwarder/README.md) before deploying Option 3.
+   _Note:_ be sure to read and understand [`modules/rdns-forwarder/README.md`](modules/rdns-forwarder/README.md) before deploying Option 3.
 
 
 
@@ -137,20 +173,22 @@ If you like, you can now deploy the `example-service` environment to launch an E
     terraform apply
     cd ..
 
-When you're done testing the example-service environment, be sure to clean it up with `terraform destroy`.
+When you're done testing the example service environment, clean it up with `terraform destroy`.
 
-Notice that the `example-service` code does _not_ directly depend on any of the shared networking code or the remote state it produces; it merely requires that the AWS account contains a VPC with a certain tag:Name, and that this VPC contains a Subnet with a certain tag:Name.
+Notice that the `example-service` code is _not_ tightly coupled to the `vpc` code (or Terraform state); it depends only upon finding an actual VPC and Subnet with the expected tag:Name values in your AWS account.
 
 
 
 ## Where To Go From Here
 ------------------------
 
-After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (as illustrated by `example-service/`).  In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to keep them separate.  A few helpful hints:
+After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (as illustrated by `example-service/`).  A few helpful hints:
 
-  * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if for some reason the entire VPC has to be rebuilt.
+  * In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to keep them separate.
 
-  * Multiple IaC environments for the same AWS account can all use the same S3 bucket and DynamoDB table for Terraform state, **provided that each environment's backend configuration stanza specifies a different `key` value**.
+  * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if the objects themselves must be destroyed and rebuilt (resulting in new IDs and ARNs).
+
+  * Multiple IaC environments for the same AWS account can share the same S3 bucket for Terraform state, **provided that each environment's backend configuration stanza specifies a different `key` value**.
 
     This example code suggests the following pattern:
 
@@ -166,7 +204,7 @@ After your VPC is deployed, the next logical step is to write additional infrast
 
 To create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `other-vpc/` and modify the necessary values in the new files.
 
-**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/backend.tf` before running any Terraform commands!
+**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/backend.tf` before running Terraform in the new environment!
 
     .
     ├── global/
@@ -180,7 +218,7 @@ You may find it convenient to name the environment directories after the VPCs th
 
 To create your new VPC in a different region, simply edit the `region` variable value in e.g. `other-vpc/terraform.tfvars`.
 
-* This does _not_ require modifying the hardcoded region names in `other-vpc/backend.tf` (or the prerequisite steps of this document); those singleton items are independent of which region the VPC itself is deployed into.
+* Do _not_ modify the hardcoded region names in `other-vpc/backend.tf`; this is the region of the S3 bucket for Terraform state, which does not depend on the region(s) of your VPCs.
 
 * You _may_ need to add more per-region singleton resources in `global/main.tf` (following the established pattern)
 
@@ -197,14 +235,14 @@ If you wish to keep IaC for several different AWS accounts in the same repositor
         ├── global/
         └── vpc/
 
-Note that each AWS account will need to use a different S3 bucket for Terraform state.
+Note that each AWS account will need its own separate S3 bucket for Terraform state.
 
 
 ### Destroying VPCs
 
-The example `vpc/main.tf` uses [`prevent_destroy`](https://www.terraform.io/docs/configuration/resources.html#prevent_destroy) to guard against inadvertent destruction of certain resources; if you really need to destroy your entire VPC, you must first comment out each occurrence of this flag.  **Please note: if you destroy and subsequently recreate your VPC, you will need to contact Technology Services again to re-enable Enterprise Networking features for the new VPC.**
+The example `vpc/main.tf` uses [`prevent_destroy`](https://www.terraform.io/docs/language/meta-arguments/lifecycle.html#prevent_destroy) to guard against inadvertent destruction of certain resources; if you really need to destroy your entire VPC, you must first comment out each occurrence of this flag.  **Please note: if you destroy and subsequently recreate your VPC, you will need to contact Technology Services again to re-enable Enterprise Networking features for the new VPC.**
 
-In order for Terraform to successfully destroy a VPC, all other resources that depend on that VPC must be removed first.  Unfortunately, the error message returned by the [AWS API method](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteVpc.html) and printed by Terraform does not provide any indication of _which_ resources are the obstacle:
+Additionally, Terraform cannot successfully destroy a VPC until all other resources that depend on that VPC have been removed.  Unfortunately, the error message returned by the [AWS API method](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteVpc.html) and printed by Terraform in this case does not provide any indication of _which_ resources are the obstacle:
 
     aws_vpc.vpc: DependencyViolation: The vpc 'vpc-abcd1234' has dependencies and cannot be deleted.
 	  status code: 400, request id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -237,9 +275,9 @@ MAJOR.MINOR versions of this repository are tracked as git branches, e.g. `vX.Y`
 
 All [module source paths](https://www.terraform.io/docs/modules/sources.html) used within the code specify a `vX.Y` branch.
 
-What this means (using hypothetical version numbers) is that if you base your own live IaC on the example environment code from release `v1.2.3`, and then re-run it in the future after a `terraform get -update`,
+What this means (using hypothetical version numbers) is that if you base your own live IaC on the example environment code from release `v1.2.3`, and later run `terraform get -update` (or `terraform init` on a different workstation),
 * You will automatically receive any module changes released as `v1.2.4` (which should be safe), because they appear on the `v1.2` branch.
-* You will _not_ automatically receive any module changes released as `v1.3.*` or `v2.0.*` (which might be incompatible with your usage and/or involve refactoring that could cause Terraform to unexpectedly destroy and recreate existing resources).
+* You will _not_ automatically receive any module changes released as `v1.3.*` or `v2.0.*` (since these changes might be incompatible with your usage and/or involve refactoring that could cause Terraform to unexpectedly destroy and recreate existing resources).
 
 Upgrading existing deployments to a new MAJOR.MINOR version is discussed in [`UPGRADING.md`](UPGRADING.md)
 
@@ -248,4 +286,4 @@ Upgrading existing deployments to a new MAJOR.MINOR version is discussed in [`UP
 ## Known Issues
 ---------------
 
-* Terraform cannot remove IPv6 from a subnet once enabled [https://github.com/terraform-providers/terraform-provider-aws/issues/10815]
+* none
