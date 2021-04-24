@@ -4,12 +4,12 @@
 # Copyright (c) 2021 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.14"
+  required_version = ">= 0.15"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 3.30"
+      version = ">= 3.35"
     }
   }
 

@@ -4,12 +4,12 @@
 
 terraform {
   # constrain minor version until 1.0 is released
-  required_version = "~> 0.14.7"
+  required_version = "~> 0.15.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 2.32"
+      version = "~> 3.35"
     }
     template = {
       source  = "hashicorp/template"

@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
 
 ### Changed
-- requires Terraform 0.14.x
+- requires Terraform 0.15.x
 - common choices can now be made in terraform.tfvars rather than editing main.tf
 - backend configuration for Terraform remote state is moved to backend.tf
 - default vpc environment now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
