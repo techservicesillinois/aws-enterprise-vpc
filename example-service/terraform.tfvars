@@ -8,7 +8,7 @@ account_id = "999999999999" #FIXME
 # AWS region for this VPC, e.g. us-east-2
 region = "us-east-2"
 
-# The short name of your VPC, e.g. "foobar1" if the full name is "aws-foobar1-vpc"
+# short name of this VPC, e.g. "foobar1" if the full name is "aws-foobar1-vpc"
 vpc_short_name = "foobar1" #FIXME
 
 # Optional CIDR blocks from which to allow ssh

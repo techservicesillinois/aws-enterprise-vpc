@@ -11,9 +11,9 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 3.35"
     }
-    template = {
-      source  = "hashicorp/template"
-      version = "~> 2.1"
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = "~> 2.2"
     }
   }
 
@@ -33,7 +33,7 @@ variable "region" {
 }
 
 variable "vpc_short_name" {
-  description = "The short name of your VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
+  description = "short name of this VPC, e.g. foobar1 if the full name is aws-foobar1-vpc"
   type        = string
 }
 
@@ -124,10 +124,10 @@ resource "aws_instance" "example" {
 
   # assign IPv6 if available, even if assign_ipv6_address_on_creation is
   # disabled for the subnet
-  ipv6_address_count = (data.aws_subnet.public1-a-net.ipv6_cidr_block == "" ? null : 1)
+  ipv6_address_count = (data.aws_subnet.public1-a-net.ipv6_cidr_block == null ? null : 1)
 
   # optional cloud-init customization
-  user_data_base64 = data.template_cloudinit_config.user_data.rendered
+  user_data_base64 = data.cloudinit_config.user_data.rendered
 }
 
 # SSH Key Pair
@@ -167,9 +167,9 @@ resource "aws_security_group_rule" "allow_ssh" {
 
   security_group_id = aws_security_group.example.id
   type              = "ingress"
+  protocol          = "tcp"
   from_port         = 22
   to_port           = 22
-  protocol          = "tcp"
   cidr_blocks       = var.ssh_ipv4_cidr_blocks
   ipv6_cidr_blocks  = var.ssh_ipv6_cidr_blocks
 }
@@ -177,7 +177,10 @@ resource "aws_security_group_rule" "allow_ssh" {
 # User Data
 
 # base64 gzipped cloud-config
-data "template_cloudinit_config" "user_data" {
+data "cloudinit_config" "user_data" {
+  gzip          = true
+  base64_encode = true
+
   part {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-config.yml", {
