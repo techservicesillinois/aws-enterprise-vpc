@@ -1,0 +1,36 @@
+{# https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-Configuration-File-Details.html #}
+{# NB: JSON doesn't support comments, but Jinja2 does! #}
+{
+  "agent": {
+    {# run as root (default) to read /var/log/messages #}
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/messages",
+            "timestamp_format": "%b %d %H:%M:%S",
+            "log_group_name": "rdns-forwarder",
+            "log_stream_name": "{instance_id}//var/log/messages",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "{{ ansible_logfile }}",
+            "timestamp_format": "%Y-%m-%d %H:%M:%S,%f",
+            "log_group_name": "rdns-forwarder",
+            "log_stream_name": "{instance_id}/{{ ansible_logfile }}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+            "log_group_name": "rdns-forwarder",
+            "log_stream_name": "{instance_id}/amazon-cloudwatch-agent.log",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    },
+    "log_stream_name": "{instance_id}"
+  }
+}

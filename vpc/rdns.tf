@@ -16,7 +16,7 @@ variable "rdns_option" {
 }
 
 variable "rdns_transition" {
-  description = "Set true temporarily while transitioning away from Option 3; see rdns.tf comments for explanation"
+  description = "Set true temporarily while transitioning to/from Option 3; see rdns.tf comments for explanation"
   type        = bool
   default     = false
 }
@@ -90,6 +90,10 @@ resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option2" {
 # instances in place for a while longer, so that they can continue to answer
 # queries from clients which have not yet picked up the new DHCP options.
 # After a while, re-run with rdns_transition = false to destroy the instances.
+#
+# You can also set rdns_transition = true before transitioning _to_ Option 3,
+# to make sure clients won't start using the newly deployed forwarders before
+# they are fully operational.
 
 module "rdns-a" {
   count  = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
@@ -99,7 +103,8 @@ module "rdns-a" {
     Name = "${var.vpc_short_name}-rdns-a"
   })
 
-  instance_type           = "t2.micro"
+  instance_type           = "t4g.micro"
+  instance_architecture   = "arm64"
   core_services_resolvers = var.core_services_resolvers
   subnet_id               = module.public-facing-subnet["public1-a-net"].id
 
@@ -120,7 +125,8 @@ module "rdns-b" {
     Name = "${var.vpc_short_name}-rdns-b"
   })
 
-  instance_type           = "t2.micro"
+  instance_type           = "t4g.micro"
+  instance_architecture   = "arm64"
   core_services_resolvers = var.core_services_resolvers
   subnet_id               = module.public-facing-subnet["public1-b-net"].id
 

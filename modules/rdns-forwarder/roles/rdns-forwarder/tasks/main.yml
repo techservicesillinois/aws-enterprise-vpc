@@ -25,7 +25,21 @@
   package: name={{ item }} state=present
   with_items:
     - bind
-    - awslogs
+    - amazon-cloudwatch-agent
+
+- name: configure amazon-cloudwatch-agent
+  become: yes
+  template:
+    dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    src: opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    # check JSON syntax
+    validate: python -m json.tool %s
+
+- name: enable amazon-cloudwatch-agent
+  service:
+    name: amazon-cloudwatch-agent
+    enabled: yes
+    state: started
 
 - name: generate rndc.key
   command: /usr/sbin/rndc-confgen -a -u named -r /dev/urandom
@@ -72,23 +86,6 @@
     src: etc/logrotate.d/ansible.j2
     force: yes
 
-- name: awslogs.conf
-  template:
-    dest: /etc/awslogs/awslogs.conf
-    src: etc/awslogs/awslogs.conf.j2
-    force: yes
-
-- name: awslogs region
-  lineinfile:
-    dest: /etc/awslogs/awscli.conf
-    regexp: '^region ='
-    line: 'region = {{ ansible_ec2_placement_region }}'
-
-- name: "start awslogs at boot"
-  service:
-    name: awslogs
-    enabled: yes
-
 # update zone configuration (using current playbook) once per hour
 - name: "cron task: update zone list"
   cron:
@@ -106,11 +103,3 @@
     day: "{{ full_update.day }}"
     hour: "{{ full_update.hour }}"
     minute: "{{ full_update.minute }}"
-
-# workaround for https://github.com/ansible/ansible/issues/22517
-- name: "fix .git/config"
-  lineinfile:
-    dest: "{{ ansible_pull_directory }}/.git/config"
-    regexp: '^(\s*fetch =) \+refs/heads/master:refs/remotes/origin/master'
-    backrefs: yes
-    line: '\1 +refs/heads/{{ ansible_pull_checkout }}:refs/remotes/origin/{{ ansible_pull_checkout }}'

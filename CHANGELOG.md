@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - backend configuration for Terraform remote state is moved to backend.tf
 - default vpc environment now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
 - default vpc environment now omits private-facing subnets
+- rdns-forwarder updated to Amazon Linux 2, t4g.micro
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - SNS topics for VPN monitoring alerts are now per-region

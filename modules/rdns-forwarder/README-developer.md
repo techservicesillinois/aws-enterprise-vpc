@@ -4,8 +4,8 @@ Testing updates to the rdns-forwarder module is tricky, because references to a 
 
 * TF module source path used to invoke the module (in the calling IaC)
 * TF vars `ansible_pull_url` and `ansible_pull_checkout` (defaults specified in `module.tf`, may be overridden by the calling IaC)
-* instance user_data (generated using TF vars)
-* file `/etc/ansible/host_vars/localhost.yml` on the instance (initialized by user_data, subsequently mutable)
+* instance user data (templated from TF vars)
+* file `/etc/ansible/host_vars/localhost.yml` on the instance (initialized from user data, subsequently mutable)
 * other instance items produced by Ansible: cron task, shallow git clone
 
 ## Test deploying a new version from scratch
@@ -15,31 +15,41 @@ When testing a new version of this module, push it to a throwaway git branch fir
 To deploy a new instance, write IaC which specifies the throwaway branch both in the module source and in `ansible_pull_checkout`.  It's also helpful to configure full updates every hour (instead of once a month) and enable SSH access for debugging.
 
   ```hcl
+  resource "aws_key_pair" "test" {
+    key_name_prefix = "test-"
+    public_key      = "ssh-rsa AAAAB3NzaC1yc2..." #FIXME
+  }
+
   module "rdns-test" {
-    source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=TESTBRANCH"
+    source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=TESTBRANCH" #FIXME
     tags = {
-      Name = "${var.vpc_short_name}-rdns-TEST"
+      Name = "rdns-test"
     }
-    instance_type            = "t2.micro"
-    core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
-    subnet_id                = module.public1-a-net.id
-    private_ip               = "192.168.0.7" #FIXME
-    zone_update_minute       = "5"
+    instance_type           = "t4g.micro"
+    instance_architecture   = "arm64"
+    core_services_resolvers = ["10.224.1.50", "10.224.1.100"] #FIXME
+    subnet_id               = module.public-facing-subnet["public1-a-net"].id
+    private_ip              = "192.0.2.5" #FIXME
+    zone_update_minute      = "5"
     # TESTING ONLY
-    ansible_pull_checkout = "TESTBRANCH"
+    ansible_pull_checkout    = "TESTBRANCH" #FIXME
     full_update_day_of_month = "*"
-    full_update_hour = "*"
-    full_update_minute = "17"
-    key_name = "" #FIXME
+    full_update_hour         = "*"
+    full_update_minute       = "17"
+    key_name                 = aws_key_pair.test.key_name
   }
 
   resource "aws_security_group_rule" "rdns-test-allow_ssh" {
     security_group_id = module.rdns-test.security_group_id
     type              = "ingress"
+    protocol          = "tcp"
     from_port         = 22
     to_port           = 22
-    protocol          = "tcp"
-    cidr_blocks       = ["130.126.0.0/16"]
+    cidr_blocks       = [var.vpc_cidr_block, "130.126.0.0/16"]
+  }
+
+  output "rdns-test" {
+    value = module.rdns-test.private_ip
   }
   ```
 
@@ -55,7 +65,7 @@ Before pushing updates to an existing vX.Y release branch, test the impact it wi
 
 ### Updating ansible_pull settings of running instances
 
-If necessary, we can push an update to an existing vX.Y release branch which will cause already-deployed instances to use a different `ansible_pull_url` and/or `ansible_pull_checkout` for future full updates (after the next one)!  See `roles/rdns-forwarder/tasks/main.yml` for implementation details.
+If necessary, we can push an update to an existing vX.Y release branch which will cause already-deployed instances to use a different `ansible_pull_url` and/or `ansible_pull_checkout` for future full updates (after the next one).  See `roles/rdns-forwarder/tasks/main.yml` for implementation details.
 
 Testing this (with a throwaway TESTBRANCH, as above) requires that we observe *two* full update cycles after pushing to TESTBRANCH:
 

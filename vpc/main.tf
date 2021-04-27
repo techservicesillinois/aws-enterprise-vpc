@@ -15,6 +15,10 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.1"
     }
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = "~> 2.2"
+    }
   }
 
   # see backend.tf for remote state configuration

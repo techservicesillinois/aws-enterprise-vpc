@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 3.35"
     }
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = ">= 2.2"
+    }
   }
 }
 
@@ -18,6 +22,17 @@ terraform {
 variable "instance_type" {
   description = "Type of EC2 instance to use for this RDNS Forwarder, e.g. t2.micro"
   type        = string
+}
+
+variable "instance_architecture" {
+  description = "Architecture of the instance type ('x86_64', 'arm64')"
+  type        = string
+  default     = "x86_64"
+
+  validation {
+    condition     = contains(["x86_64", "arm64"], var.instance_architecture)
+    error_message = "Must be one of: 'x86_64', 'arm64'."
+  }
 }
 
 variable "subnet_id" {
@@ -41,30 +56,55 @@ variable "associate_public_ip_address" {
 variable "core_services_resolvers" {
   description = "IPv4 addresses of Core Services Resolvers to query for University domains"
   type        = list(string)
+
+  validation {
+    condition     = length(var.core_services_resolvers) > 0
+    error_message = "Cannot be empty."
+  }
 }
 
 variable "zone_update_minute" {
   description = "Minute (between 0 and 59) to perform the hourly zone list update"
   type        = string
   default     = "0"
+
+  validation {
+    condition     = var.zone_update_minute >= 0 && var.zone_update_minute <= 59
+    error_message = "Valid range 0-59."
+  }
 }
 
 variable "full_update_day_of_month" {
   description = "Day of month (between 1 and 28) to perform the monthly full update"
   type        = string
   default     = "1"
+
+  validation {
+    condition     = var.full_update_day_of_month == "*" || try(var.full_update_day_of_month >= 1 && var.full_update_day_of_month <= 28, false)
+    error_message = "Valid range 1-28."
+  }
 }
 
 variable "full_update_hour" {
   description = "Hour (between 0 and 23, note UTC) to perform the monthly full update"
   type        = string
   default     = "8"
+
+  validation {
+    condition     = var.full_update_hour == "*" || try(var.full_update_hour >= 0 && var.full_update_hour <= 23, false)
+    error_message = "Valid range 0-23."
+  }
 }
 
 variable "full_update_minute" {
   description = "Minute (between 0 and 59) to perform the monthly full update"
   type        = string
   default     = "17"
+
+  validation {
+    condition     = var.full_update_minute >= 0 && var.full_update_minute <= 59
+    error_message = "Valid range 0-59."
+  }
 }
 
 variable "tags" {
@@ -138,34 +178,39 @@ data "aws_vpc" "selected" {
   id = data.aws_subnet.selected.vpc_id
 }
 
-# Get the latest Amazon Linux AMI named e.g. amzn-ami-hvm-2016.09.1.20170119-x86_64-gp2
+# Get the latest Amazon Linux 2 AMI named e.g. amzn2-ami-hvm-2.0.20210326.0-x86_64-gp2
 data "aws_ami" "ami" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn-ami-hvm-*-x86_64-gp2"]
+    values = ["amzn2-ami-hvm-*-${var.instance_architecture}-gp2"]
   }
 }
 
-data "template_file" "user_data" {
-  template = file("${path.module}/user_data.sh")
+# User Data
 
-  vars = {
-    vpc_cidr   = data.aws_vpc.selected.cidr_block
-    amazon_dns = cidrhost(data.aws_vpc.selected.cidr_block, 2)
+data "cloudinit_config" "user_data" {
+  gzip          = true
+  base64_encode = true
 
-    # format as YAML list
-    forwarders_list          = join("\n", formatlist("  - %s", var.core_services_resolvers))
-    ansible_logfile          = "/var/log/ansible.log"
-    ansible_pull_url         = var.ansible_pull_url
-    ansible_pull_checkout    = var.ansible_pull_checkout
-    ansible_pull_directory   = "/root/aws-enterprise-vpc"
-    zone_update_minute       = var.zone_update_minute
-    full_update_day_of_month = var.full_update_day_of_month
-    full_update_hour         = var.full_update_hour
-    full_update_minute       = var.full_update_minute
+  part {
+    content_type = "text/cloud-config"
+    content = templatefile("${path.module}/cloud-config.yml", {
+      vpc_cidr   = data.aws_vpc.selected.cidr_block
+      amazon_dns = cidrhost(data.aws_vpc.selected.cidr_block, 2)
+
+      forwarders               = var.core_services_resolvers
+      ansible_logfile          = "/var/log/ansible.log"
+      ansible_pull_url         = var.ansible_pull_url
+      ansible_pull_checkout    = var.ansible_pull_checkout
+      ansible_pull_directory   = "/root/aws-enterprise-vpc"
+      zone_update_minute       = var.zone_update_minute
+      full_update_day_of_month = var.full_update_day_of_month
+      full_update_hour         = var.full_update_hour
+      full_update_minute       = var.full_update_minute
+    })
   }
 }
 
@@ -182,13 +227,13 @@ resource "aws_instance" "forwarder" {
   key_name                    = var.key_name
   vpc_security_group_ids      = [aws_security_group.rdns.id]
   iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
-  user_data                   = data.template_file.user_data.rendered
+  user_data_base64            = data.cloudinit_config.user_data.rendered
 
   lifecycle {
-    # Avoids unnecessary destruction and recreation of the instance by Terraform
-    # when a new release becomes available.  Note that yum update will still get
-    # the latest packages regardless of which AMI we start from; see
-    # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonLinuxAMIBasics.html#RepoConfig
+    # Avoids unnecessary destruction and recreation of the instance by
+    # Terraform when a new AMI is released.  Note that yum update will still
+    # get the latest packages regardless of which AMI we start from; see
+    # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config
     ignore_changes = [ami]
   }
 }
@@ -219,9 +264,9 @@ resource "aws_security_group_rule" "allow_dns_udp" {
   # note: tags not supported
   security_group_id = aws_security_group.rdns.id
   type              = "ingress"
+  protocol          = "udp"
   from_port         = 53
   to_port           = 53
-  protocol          = "udp"
   cidr_blocks       = [data.aws_vpc.selected.cidr_block]
 }
 
@@ -229,9 +274,9 @@ resource "aws_security_group_rule" "allow_dns_tcp" {
   # note: tags not supported
   security_group_id = aws_security_group.rdns.id
   type              = "ingress"
+  protocol          = "tcp"
   from_port         = 53
   to_port           = 53
-  protocol          = "tcp"
   cidr_blocks       = [data.aws_vpc.selected.cidr_block]
 }
 
@@ -239,9 +284,9 @@ resource "aws_security_group_rule" "allow_icmp" {
   # note: tags not supported
   security_group_id = aws_security_group.rdns.id
   type              = "ingress"
+  protocol          = "icmp"
   from_port         = "-1" # ICMP type number
   to_port           = "-1" # ICMP code
-  protocol          = "icmp"
   cidr_blocks       = [data.aws_vpc.selected.cidr_block]
 }
 

@@ -1,0 +1,66 @@
+#cloud-config
+#
+# Copyright (c) 2021 Board of Trustees University of Illinois
+#
+# http://cloudinit.readthedocs.io/en/latest/topics/examples.html
+# (see also Modules)
+#
+# Modules run in an order predetermined by /etc/cloud/cloud.cfg.  For human
+# convenience, keep this file organized in the same order.
+#
+# Detailed logs appear in /var/log/cloud-init.log
+
+bootcmd:
+
+# use Amazon DNS as a backup in case our resolvers are down (now)
+- echo "nameserver ${amazon_dns}" >> /etc/resolv.conf
+
+# enable EPEL
+- [ cloud-init-per, once, enable_epel, yum, "-y", install, "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm" ]
+
+write_files:
+
+# use Amazon DNS as a backup in case our resolvers are down (in the future)
+- path: /etc/dhcp/dhclient.conf
+  append: true
+  content: append domain-name-servers ${amazon_dns};
+
+# Ansible provides implicit localhost, but adding it explicitly suppresses
+# "[WARNING]: provided hosts list is empty, only localhost is available"
+- path: /etc/ansible/hosts
+  content: |
+    localhost ansible_connection=local
+
+# Ansible logging
+- path: /root/.ansible.cfg
+  content: |
+    [defaults]
+    log_path=${ansible_logfile}
+
+# host-specific variables for use within Ansible
+- path: /etc/ansible/host_vars/localhost.yml
+  content: |
+    ---
+    vpc_cidr: ${vpc_cidr}
+    amazon_dns: ${amazon_dns}
+    forwarders:
+      ${ indent(6, join("\n", formatlist("- %s", forwarders))) }
+    ansible_logfile: ${ansible_logfile}
+    ansible_pull_directory: ${ansible_pull_directory}
+    ansible_pull_url: ${ansible_pull_url}
+    ansible_pull_checkout: ${ansible_pull_checkout}
+    zone_update:
+      minute: "${zone_update_minute}"
+    full_update:
+      day: "${full_update_day_of_month}"
+      hour: "${full_update_hour}"
+      minute: "${full_update_minute}"
+    ansible_python_interpreter: auto_silent
+
+packages:
+- ansible
+- git
+
+runcmd:
+# initial ansible-pull
+- ansible-pull --url=${ansible_pull_url} --checkout=${ansible_pull_checkout} --directory=${ansible_pull_directory} modules/rdns-forwarder/local.yml
