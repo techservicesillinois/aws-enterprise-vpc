@@ -25,17 +25,13 @@ write_files:
   append: true
   content: append domain-name-servers ${amazon_dns};
 
-# Ansible provides implicit localhost, but adding it explicitly suppresses
-# "[WARNING]: provided hosts list is empty, only localhost is available"
-- path: /etc/ansible/hosts
-  content: |
-    localhost ansible_connection=local
-
-# Ansible logging
+# configure Ansible logging and avoid some warnings
 - path: /root/.ansible.cfg
   content: |
     [defaults]
     log_path=${ansible_logfile}
+    localhost_warning=no
+    interpreter_python=auto_silent
 
 # host-specific variables for use within Ansible
 - path: /etc/ansible/host_vars/localhost.yml
@@ -55,7 +51,6 @@ write_files:
       day: "${full_update_day_of_month}"
       hour: "${full_update_hour}"
       minute: "${full_update_minute}"
-    ansible_python_interpreter: auto_silent
 
 packages:
 - ansible
@@ -63,4 +58,4 @@ packages:
 
 runcmd:
 # initial ansible-pull
-- ansible-pull --url=${ansible_pull_url} --checkout=${ansible_pull_checkout} --directory=${ansible_pull_directory} modules/rdns-forwarder/local.yml
+- ansible-pull --url=${ansible_pull_url} --checkout=${ansible_pull_checkout} --directory=${ansible_pull_directory} modules/rdns-forwarder/local.yml > /dev/null

@@ -6,14 +6,13 @@
     repo: "{{ zone_list_repo }}"
 
 - name: read zone_list
-  command: cat {{ zone_list_directory }}/zone_list
+  slurp:
+    src: "{{ zone_list_directory }}/zone_list"
   register: zone_list
-  changed_when: false
 
 - name: update zones.conf
   template:
     dest: /var/named/zones.conf
     src: var/named/zones.conf.j2
-    force: yes
     validate: /usr/sbin/named-checkconf %s
   notify: rndc reconfig

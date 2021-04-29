@@ -5,6 +5,6 @@ zone "illinois.edu" { type forward; forward first; forwarders { 10.224.1.50; 10.
 zone "uillinois.edu" { type forward; forward first; forwarders { 10.224.1.50; 10.224.1.100; }; };
 -#}
 
-{% for zone in zone_list.stdout_lines %}
+{% for zone in (zone_list['content'] | b64decode).splitlines() %}
 zone "{{ zone }}" { type forward; forward first; forwarders { {% for ip in forwarders -%} {{ ip }}; {% endfor -%} }; };
 {% endfor %}

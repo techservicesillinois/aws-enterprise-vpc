@@ -1,10 +1,14 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 ---
+# can't use reboot module on localhost
+# https://github.com/ansible/ansible/issues/57874
 - name: reboot
-  debug: msg='reboot triggered'
-  changed_when: true
+  shell: sleep 2 && reboot
+  async: "{{ reboot_timeout | default(300) }}"
+  poll: 0 # fire and forget
   register: reboot_flag
-  notify: _reboot_system
+  # async always fails in check mode
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: rndc reconfig
   command: /usr/sbin/rndc reconfig
@@ -15,9 +19,3 @@
     name: named
     state: restarted
   when: reboot_flag is undefined
-
-# actually reboot (letting Ansible exit first)
-- name: _reboot_system
-  shell: sleep 2 && /sbin/reboot
-  async: 10
-  poll: 0

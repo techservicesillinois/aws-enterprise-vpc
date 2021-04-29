@@ -15,7 +15,7 @@
     dest: /etc/ansible/host_vars/localhost.yml
     regexp: "^{{ item }}: "
     line: "{{ item }}: {{ lookup('vars', item) }}"
-  with_items:
+  loop:
     - ansible_pull_url
     - ansible_pull_checkout
 
@@ -23,12 +23,11 @@
 
 - name: install packages
   package: name={{ item }} state=present
-  with_items:
+  loop:
     - bind
     - amazon-cloudwatch-agent
 
 - name: configure amazon-cloudwatch-agent
-  become: yes
   template:
     dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     src: opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
@@ -39,6 +38,7 @@
   service:
     name: amazon-cloudwatch-agent
     enabled: yes
+    # upload ansible.log ASAP in case something goes wrong
     state: started
 
 - name: generate rndc.key
@@ -55,7 +55,6 @@
   template:
     dest: /etc/named.conf
     src: etc/named.conf.j2
-    force: yes
     validate: /usr/sbin/named-checkconf %s
   notify: rndc reconfig
 
@@ -66,12 +65,12 @@
     line: 'OPTIONS="-4"'
   notify: restart named
 
-- name: "start named at boot"
+- name: enable named at boot
   service:
     name: named
     enabled: yes
   # trigger a reboot (rather than just applying state: started now) to make
-  # sure everything works as intended
+  # sure *everything* works as intended before we start answering queries
   notify: reboot
 
 - name: update existing packages
@@ -84,18 +83,15 @@
   template:
     dest: /etc/logrotate.d/ansible
     src: etc/logrotate.d/ansible.j2
-    force: yes
 
-# update zone configuration (using current playbook) once per hour
-- name: "cron task: update zone list"
+- name: cron task to update zone configuration (using current playbook)
   cron:
-    name: update zone list
+    name: update zones
     # use an explicit login shell to avoid PATH surprises
     job: "bash -lc 'ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones' > /dev/null"
     minute: "{{ zone_update.minute }}"
 
-# perform a full ansible-pull update (including upstream playbook changes) once per month
-- name: "cron task: ansible-pull"
+- name: cron task for full ansible-pull update (including upstream playbook changes)
   cron:
     name: ansible-pull
     # use an explicit login shell to avoid PATH surprises
