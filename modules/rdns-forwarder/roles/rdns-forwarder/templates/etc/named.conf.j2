@@ -1,15 +1,15 @@
-# named.conf for AWS RDNS Forwarders using BIND from Amazon Linux
-#
-# Copyright (c) 2017 Board of Trustees University of Illinois
+# named.conf for AWS RDNS Forwarders using BIND 9.11 from Amazon Linux 2
 #
 # note: the distribution's default file can be found at
-# /usr/share/doc/bind-9.8.2/named.conf.default
+# /usr/share/doc/bind*/named.conf.default
 
 options {
-    directory "/var/named";
-    dump-file "/var/named/data/cache_dump.db";
-    statistics-file "/var/named/data/named_stats.txt";
+    directory          "/var/named";
+    dump-file          "/var/named/data/cache_dump.db";
+    statistics-file    "/var/named/data/named_stats.txt";
     memstatistics-file "/var/named/data/named_mem_stats.txt";
+    recursing-file     "/var/named/data/named.recursing";
+    secroots-file      "/var/named/data/named.secroots";
 
     allow-query { localhost; {{ vpc_cidr }}; };
     recursion yes;
@@ -18,20 +18,34 @@ options {
     forwarders { {{ amazon_dns }}; };
     forward only;
 
-    dnssec-enable no;
-    dnssec-validation no;
-
     # tune caching behavior (values in seconds)
     max-cache-ttl  {{ max_cache_ttl | default(900) }};
     max-ncache-ttl {{ max_ncache_ttl | default(900) }};
 
     version none;
+
+    dnssec-enable yes; # return DNSSEC-related resource records
+    dnssec-validation no;
+
+    bindkeys-file "/etc/named.root.key";
+
+    managed-keys-directory "/var/named/dynamic";
+
+    pid-file "/run/named/named.pid";
+    session-keyfile "/run/named/session.key";
 };
 
 logging {
     # log INFO and above to rsyslog (i.e. /var/log/messages)
     category default { default_syslog; };
 };
+
+zone "." IN {
+    type hint;
+    file "named.ca";
+};
+
+include "/etc/named.root.key";
 
 include "/etc/rndc.key";
 controls {
