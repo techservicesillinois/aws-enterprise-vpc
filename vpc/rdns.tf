@@ -77,7 +77,7 @@ locals {
 }
 
 module "rdns-a" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.10"
 
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-a"
@@ -97,7 +97,7 @@ module "rdns-a" {
 }
 
 module "rdns-b" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.10"
 
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-b"
