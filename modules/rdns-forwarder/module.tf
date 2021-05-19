@@ -178,6 +178,15 @@ data "aws_vpc" "selected" {
   id = data.aws_subnet.selected.vpc_id
 }
 
+# fail fast if instance_type and instance_architecture are incompatible
+data "aws_ec2_instance_type" "this" {
+  instance_type = var.instance_type
+}
+locals {
+  # workaround for lack of assertions https://github.com/hashicorp/terraform/issues/15469
+  assert_architecture = contains(data.aws_ec2_instance_type.this.supported_architectures, var.instance_architecture) ? null : file("ERROR: mismatch between instance type '${var.instance_type}' and architecture '${var.instance_architecture}'")
+}
+
 # Get the latest Amazon Linux 2 AMI named e.g. amzn2-ami-hvm-2.0.20210326.0-x86_64-gp2
 data "aws_ami" "ami" {
   most_recent = true
@@ -210,6 +219,9 @@ data "cloudinit_config" "user_data" {
       full_update_day_of_month = var.full_update_day_of_month
       full_update_hour         = var.full_update_hour
       full_update_minute       = var.full_update_minute
+
+      # force instance replacement if this value changes
+      instance_architecture = var.instance_architecture
     })
   }
 }
@@ -235,6 +247,18 @@ resource "aws_instance" "forwarder" {
     # get the latest packages regardless of which AMI we start from; see
     # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config
     ignore_changes = [ami]
+  }
+
+  # However, do force replacement if instance_architecture changes.
+  # Unfortunately depends_on doesn't actually achieve this (see
+  # https://github.com/hashicorp/terraform/issues/8099), so our workaround is
+  # to put instance_architecture in the user data (see above)
+  depends_on = [ null_resource.instance_architecture ]
+}
+
+resource "null_resource" "instance_architecture" {
+  triggers = {
+    instance_architecture = var.instance_architecture
   }
 }
 

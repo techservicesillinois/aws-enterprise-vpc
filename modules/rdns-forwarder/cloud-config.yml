@@ -10,6 +10,9 @@
 #
 # Detailed logs appear in /var/log/cloud-init.log
 
+# force instance replacement if this value changes:
+# ${instance_architecture}
+
 bootcmd:
 
 # use Amazon DNS as a backup in case our resolvers are down (now)
