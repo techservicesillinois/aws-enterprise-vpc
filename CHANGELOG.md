@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.10.0] - Unreleased
 
 ### Added
 - attach to Transit Gateway shared from the Core Services account
@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - convenient IAM Role for creating Flow Logs
 - demonstrate cloud-init in example-service
 - vpn-connection now supports Transit Gateway (as well as VPN Gateway)
+- prevent accidental destruction/replacement of RDNS forwarders
 - accept Resource Access Manager (RAM) shares from other accounts
 - Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
 
@@ -24,8 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - rdns-forwarder updated to Amazon Linux 2, t4g.micro
 - update example-service to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
+- vpn-connection CloudWatch Alarm is now located in the VPN connection's region instead of a fixed singleton region
 - SNS topics for VPN monitoring alerts are now per-region
 - pcx_ids (in subnet modules) is now map instead of list, and dependencies are implicit
+- attach vgw to vpc using explicit aws_vpn_gateway_attachment resource (instead of vpc_id attribute)
 
 ### Deprecated
 - dedicated campus-facing VPN connections from each VPC (use Transit Gateway instead)

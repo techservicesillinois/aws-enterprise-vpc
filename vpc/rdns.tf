@@ -117,6 +117,19 @@ module "rdns-a" {
   full_update_day_of_month = "1"
 }
 
+resource "null_resource" "rdns-a" {
+  count = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
+
+  triggers = {
+    t = module.rdns-a[0].id
+  }
+
+  # Comment this out when you really need to destroy the forwarder.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 module "rdns-b" {
   count  = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
   source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.10"
@@ -134,6 +147,19 @@ module "rdns-b" {
 
   zone_update_minute       = "35"
   full_update_day_of_month = "15"
+}
+
+resource "null_resource" "rdns-b" {
+  count = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
+
+  triggers = {
+    t = module.rdns-b[0].id
+  }
+
+  # Comment this out when you really need to destroy the forwarder.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # create a DHCP Options Set

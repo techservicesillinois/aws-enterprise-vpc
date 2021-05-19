@@ -60,7 +60,7 @@ variable "subnets_by_availability_zone_suffix" {
 variable "use_transit_gateway" {
   description = "Should this VPC attach to (and create routes toward) a Transit Gateway?"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "transit_gateway_id" {
@@ -205,20 +205,22 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
   # https://github.com/hashicorp/terraform/issues/28330 workaround: avoid
   # dependency cycles by using only hardcoded static literal references (add
   # lines if needed)
-  #subnet_ids = [for k,v in var.transit_gateway_attachment_subnets :
-  #  try(module.public-facing-subnet[v].id, module.campus-facing-subnet[v].id, module.private-facing-subnet[v].id,
-  #    # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
-  #    # so we know which occurrence failed
-  #    file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${v}'"))]
-  subnet_ids = [for k,v in var.transit_gateway_attachment_subnets :
-    v == "public1-a-net" ? module.public-facing-subnet["public1-a-net"].id :
-    v == "public1-b-net" ? module.public-facing-subnet["public1-b-net"].id :
-    v == "campus1-a-net" ? module.campus-facing-subnet["campus1-a-net"].id :
-    v == "campus1-b-net" ? module.campus-facing-subnet["campus1-b-net"].id :
-    v == "private1-a-net" ? module.private-facing-subnet["private1-a-net"].id :
-    v == "private1-b-net" ? module.private-facing-subnet["private1-b-net"].id :
+  #subnet_ids = [for az_suffix,subnet_key in var.transit_gateway_attachment_subnets : try(
+  #  module.public-facing-subnet[subnet_key].id,
+  #  module.campus-facing-subnet[subnet_key].id,
+  #  module.private-facing-subnet[subnet_key].id,
+  #  # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
+  #  # so we know which occurrence failed
+  #  file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${subnet_key}'"))]
+  subnet_ids = [for az_suffix,subnet_key in var.transit_gateway_attachment_subnets :
+    subnet_key == "public1-a-net" ? module.public-facing-subnet["public1-a-net"].id :
+    subnet_key == "public1-b-net" ? module.public-facing-subnet["public1-b-net"].id :
+    subnet_key == "campus1-a-net" ? module.campus-facing-subnet["campus1-a-net"].id :
+    subnet_key == "campus1-b-net" ? module.campus-facing-subnet["campus1-b-net"].id :
+    subnet_key == "private1-a-net" ? module.private-facing-subnet["private1-a-net"].id :
+    subnet_key == "private1-b-net" ? module.private-facing-subnet["private1-b-net"].id :
     # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
-    file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${v}'")]
+    file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${subnet_key}'")]
 
   # Comment this out if you really need to destroy the attachment.  Note that
   # if you subsequently recreate it, you will need to contact Technology
@@ -248,14 +250,17 @@ locals {
 
 module "nat" {
   source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
-  for_each = { for az_suffix,v in var.nat_gateways : "${var.region}${az_suffix}" => v }
+  for_each = { for az_suffix,subnet_key in var.nat_gateways : "${var.region}${az_suffix}" => {
+    az_suffix  = az_suffix
+    subnet_key = subnet_key
+  }}
 
   tags = merge(var.tags, {
-    Name = "${var.vpc_short_name}-nat-${each.key}"
+    Name = "${var.vpc_short_name}-nat-${each.value.az_suffix}"
   })
 
   # Subnets are defined further down.
-  public_subnet_id = module.public-facing-subnet[each.value].id
+  public_subnet_id = module.public-facing-subnet[each.value.subnet_key].id
 }
 
 # create an IPv6 Egress-Only Internet Gateway for private-facing subnets
@@ -281,7 +286,13 @@ resource "aws_vpn_gateway" "vgw" {
   })
 
   amazon_side_asn = 64512
-  vpc_id          = aws_vpc.vpc.id
+}
+
+resource "aws_vpn_gateway_attachment" "vgw_attachment" {
+  count = var.use_dedicated_vpn ? 1 : 0
+
+  vpn_gateway_id = aws_vpn_gateway.vgw[0].id
+  vpc_id         = aws_vpc.vpc.id
 }
 
 module "vpn1" {
@@ -388,8 +399,8 @@ locals {
 locals {
   # rearrange with availability_zone inside each object, and calculate IPv6
   # cidr blocks (if any) based on the actual allocation
-  subnet_details = merge([ for az_suffix,v in var.subnets_by_availability_zone_suffix : { for name_suffix,d in v :
-    name_suffix => {
+  subnet_details = merge([ for az_suffix,v in var.subnets_by_availability_zone_suffix : { for subnet_key,d in v :
+    subnet_key => {
       type              = d.type
       availability_zone = "${var.region}${az_suffix}"
       cidr_block        = d.cidr_block
