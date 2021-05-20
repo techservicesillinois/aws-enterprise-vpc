@@ -2,7 +2,62 @@
 {# NB: JSON doesn't support comments, but Jinja2 does! #}
 {
   "agent": {
-    {# run as root (default) to read /var/log/messages #}
+    "metrics_collection_interval": 60
+    {# run as root (default) to read /var/log/messages -#}
+  },
+  "metrics": {
+    "namespace": "rdns-forwarder",
+    "metrics_collected": {
+{# AWS/EC2 CPUUtilization is good enough for now
+      "cpu": {
+        "measurement": [
+          "usage_active",
+          "usage_user",
+          "usage_system",
+          "usage_nice",
+          "usage_iowait",
+          "usage_irq",
+          "usage_softirq",
+          "usage_idle"
+        ],
+        "resources": [
+          "*"
+        ],
+        "totalcpu": false
+      },
+#}
+      "mem": {
+        "measurement": [
+          "used_percent"
+        ]
+      },
+{# we don't configure swap
+      "swap": {
+        "measurement": [
+          "used_percent"
+        ]
+      },
+#}
+      "disk": {
+        "measurement": [
+          "used_percent"
+        ],
+        "resources": [
+          "/"
+        ],
+        "drop_device": true
+      }
+    },
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    }
+{#   ,
+    "aggregation_dimensions": [
+      {# for calculating e.g. Maximum(cpu_usage_active) across all CPUs -#}
+{#
+      ["InstanceId"]
+    ]
+#}
   },
   "logs": {
     "logs_collected": {

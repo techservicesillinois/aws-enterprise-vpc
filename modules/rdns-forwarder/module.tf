@@ -343,30 +343,10 @@ resource "aws_iam_role" "role" {
 EOF
 }
 
-# Permit RDNS Forwarders to publish CloudWatch Logs
-# http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/QuickStartEC2Instance.html
-resource "aws_iam_role_policy" "inline1" {
+# Permit RDNS Forwarders to publish CloudWatch Logs and Metrics
+# https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/create-iam-roles-for-cloudwatch-agent-commandline.html
+resource "aws_iam_role_policy_attachment" "CloudWatchAgentServerPolicy" {
   # note: tags not supported
-  name_prefix = "rdns-forwarder-"
-  role        = aws_iam_role.role.name
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "logs:DescribeLogStreams"
-      ],
-      "Effect": "Allow",
-      "Resource": [
-        "arn:aws:logs:*:*:*"
-      ]
-    }
-  ]
-}
-EOF
+  role       = aws_iam_role.role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }

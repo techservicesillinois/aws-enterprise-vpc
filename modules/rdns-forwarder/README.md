@@ -6,14 +6,14 @@ RDNS Forwarders accept and answer recursive DNS queries _only_ from clients with
 
   * If the query is for a University domain, your RDNS Forwarder forwards it to the **Core Services Resolvers** located in a Core Services VPC.  These resolvers are able to resolve DNS records in zones which are restricted to University clients only.
 
-  * If the query is for any other domain, your RDNS Forwarder instead forwards it to [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  AmazonProvidedDNS offers some special features whose behavior is specific to your VPC (and therefore cannot be implemented by the Core Services Resolvers).
+  * If the query is for any other domain, your RDNS Forwarder instead forwards it to [AmazonProvidedDNS](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  AmazonProvidedDNS offers some special features whose behavior is specific to your VPC and cannot be replicated by the Core Services Resolvers.
 
 
 ## Automated Updates
 
 RDNS Forwarders are designed to run completely unattended.  They use cron and [ansible-pull](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#ansible-pull) to perform two distinct types of automated self-updates:
 
-  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers as opposed to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](http://techservices.illinois.edu/services/ip-address-management), and `named` is instructed to reload the new configuration if it has changed.
+  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers as opposed to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](https://techservices.illinois.edu/services/ip-address-management), and `named` is instructed to reload the new configuration if it has changed.
 
   * Once per month, a *full update* is performed based on the ansible code published in this git repository.  This includes a `yum -y update` to get the latest versions of all installed system packages [regardless of which Amazon Linux 2 AMI we started from](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config).
 
@@ -25,7 +25,7 @@ To avoid impacting other resources in your VPC, please observe the following rec
 
   2. Periodically test (from within your VPC) that each of your RDNS Forwarders can successfully answer queries for at least one University domain and at least one non-University domain.
 
-  3. If you ever need to destroy and recreate an RDNS Forwarder (e.g. to upgrade to a larger size instance, or to a new MAJOR.MINOR version branch of this repository),
+  3. If you ever need to replace an RDNS Forwarder (e.g. to upgrade to a larger size instance, or to a new MAJOR.MINOR version branch of this repository),
      * Take down only one RDNS Forwarder at a time.
      * Test the other one first to make sure it is working as expected.
      * Be sure the other one is not scheduled to perform its automated full update during your maintenance window.
@@ -37,8 +37,9 @@ If an RDNS Forwarder stops working, destroy and recreate it from scratch.
 
 If a _newly created_ RDNS Forwarder (using the latest release of this repository) doesn't work, contact Technology Services for help.  Note that a newly created RDNS Forwarder may take up to 5 minutes to configure itself and begin answering queries.
 
-System logs are published in [CloudWatch Logs](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/) to help with post-mortem analysis of problems.
+System logs are published under log group `rdns-forwarder` in [CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/) to help with post-mortem analysis of any problems.
 
+Use [CloudWatch Metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/working_with_metrics.html) to view the [default AWS/EC2 metrics](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html) plus some additional custom metrics published under namespace `rdns-forwarder`.
 
 ## How to Deploy
 
@@ -86,9 +87,9 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      * You can also specify `full_update_hour` and `full_update_minute` if you want; the defaults correspond to 08:17 UTC.
 
-     * Using a public-facing subnet is simplest, but a campus-facing or private-facing subnet will also work if it has outbound Internet connectivity (via a NAT Gateway).  If you do use a campus-facing or private-facing subnet, you must also specify `associate_public_ip_address = false` in the module parameters.
+     * Using a public-facing subnet is simplest, but a campus-facing or private-facing subnet will also work if it has outbound Internet connectivity.  If you do use a campus-facing or private-facing subnet, you must also specify `associate_public_ip_address = false` in the module parameters.
 
-2. Deploy a custom [VPC DHCP Options Set](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html) which instructs other instances in your VPC to send their DNS queries to the private IP addresses of your RDNS Forwarders, and associate that DHCP Options Set with the VPC.
+2. Deploy a custom [VPC DHCP Options Set](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html) which instructs other instances in your VPC to send their DNS queries to the private IP addresses of your RDNS Forwarders, and associate that DHCP Options Set with the VPC.
 
      ```hcl
      resource "aws_vpc_dhcp_options" "dhcp_options" {
@@ -120,4 +121,4 @@ Wishlist:
 - external notifications (SNS/email) in case of trouble
   - ansible failures
   - dig @localhost tests
-- how to detect if RDNS Forwarder is oversubscribed (i.e. instance_type is too small)
+  - metrics suggest that RDNS Forwarder may be oversubscribed (i.e. instance_type is too small)

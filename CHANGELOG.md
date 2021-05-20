@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - prevent accidental destruction/replacement of RDNS forwarders
 - accept Resource Access Manager (RAM) shares from other accounts
 - Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
+- rdns-forwarder custom metrics for mem and disk usage
 
 ### Changed
 - requires Terraform 0.15.x

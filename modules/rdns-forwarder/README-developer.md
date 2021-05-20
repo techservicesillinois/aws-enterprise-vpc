@@ -69,12 +69,12 @@ If necessary, we can push an update to an existing vX.Y release branch which wil
 
 Testing this (with a throwaway TESTBRANCH, as above) requires that we observe *two* full update cycles after pushing to TESTBRANCH:
 
-1. Runs the modified TESTBRANCH playbook to update the host_vars file and cron task for next time.  Verify (as root)
+1. The first full update runs the modified TESTBRANCH playbook to update the host_vars file and cron task for next time.  Verify (as root)
 
        grep ansible_pull /etc/ansible/host_vars/localhost.yml
        crontab -l
 
-2. Checks out and runs the new target version of the playbook.  Verify (as root)
+2. The second full update checks out and runs the new target version of the playbook.  Verify (as root)
 
        git -C /root/aws-enterprise-vpc remote -v
        git -C /root/aws-enterprise-vpc branch -a
