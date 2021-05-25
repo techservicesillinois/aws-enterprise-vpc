@@ -78,7 +78,7 @@ The basic idea:
 
           source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.9"
           instance_type           = "t2.micro"
-          instance_architecture   = "x86_64"
+          #instance_architecture
 
   19. `terraform init -upgrade`
   20. Refactor:
@@ -124,6 +124,8 @@ The basic idea:
         - module.vpn1[0].aws_cloudwatch_metric_alarm.vpnstatus[0] will be created
         - module.vpn2[0].aws_cloudwatch_metric_alarm.vpnstatus[0] will be created
         - (various) null_resource.dummy_depends_on will be destroyed
+
+      You may also need to comment out `amazon_side_asn = 64512` in vpc/main.tf if it was not there before.
 
   22. When confident, `terraform apply`
 
