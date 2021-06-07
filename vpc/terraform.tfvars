@@ -21,12 +21,16 @@ assign_generated_ipv6_cidr_block = false
 # campus-facing in each of two Availability Zones.
 #
 # Each subnet's cidr_block must be a subset of the overall vpc_cidr_block.
-# Subnets do not need to be the same size; you can divide your IPv4 allocation
-# in whatever way best suits your needs.
 #
-# Hint: use e.g. `ipcalc 192.0.2.0/24 27 --nobinary` to display all possible
-# /27 subnets within your vpc_cidr_block.
+# Hint: use e.g. `ipcalc 192.0.2.0/24 26 --nobinary` to display all possible
+# /26 subnets within your vpc_cidr_block, and
+# `ipcalc 192.0.2.0/24 27 --nobinary` to display all possible /27 subnets.
 # (http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc)
+#
+# You are free to choose a combination of differently sized subnets, so long as
+# the actual addresses don't overlap (i.e. the Broadcast address at the end of
+# your first subnet must be smaller than the base Network address at the
+# beginning of your second one, and so on).
 #
 # IPv6 subnet CIDRs are always /64, and will be calculated from the VPC's IPv6
 # CIDR block once it is known.

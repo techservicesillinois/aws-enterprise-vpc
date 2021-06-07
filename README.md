@@ -57,13 +57,7 @@ You will need:
      - vpc_cidr_block
      - cidr_block (multiple occurrences, all different values)
 
-_Hint:_ <http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc> can help you with subnet math.
-  * Use e.g. `ipcalc 10.x.y.0/24 26 --nobinary` to display all possible /26 subnets within your VPC allocation, and `ipcalc 10.x.y.0/24 27 --nobinary` to display all possible /27 subnets.
-  * You are free to choose a combination of differently sized subnets, so long as the actual addresses don't overlap (i.e. the Broadcast address at the end of your first subnet must be smaller than the base Network address at the beginning of your second one, and so on).
-
-You may wish to make additional changes depending on your specific needs (e.g. to deploy more or fewer distinct subnets); read the comments for some hints.
-
-If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with four subnets (one public-facing and one campus-facing in each of two Availability Zones), i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
+You may wish to make additional changes based on your specific needs; read the comments for some hints.  If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with four subnets (one public-facing and one campus-facing in each of two Availability Zones), no NAT Gateways, and no IPv6, i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
@@ -75,8 +69,9 @@ You can run this code from any workstation (even a laptop); there is no need for
 If you just want to deploy your VPC as quickly as possible, you can install Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this:
 
     mkdir -p ~/.local/bin
-    wget -P /tmp https://releases.hashicorp.com/terraform/0.15.0/terraform_0.15.0_linux_amd64.zip
-    unzip -d ~/.local/bin /tmp/terraform_0.15.0_linux_amd64.zip
+    export VERSION=0.15.0
+    wget -P /tmp https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
+    unzip -d ~/.local/bin /tmp/terraform_${VERSION}_linux_amd64.zip
     terraform --version
 
 However, if you're interested in using Terraform for other infrastructure-as-code (IaC) projects beyond this one, it is worthwhile to go ahead and set up your regular workstation:
@@ -150,9 +145,11 @@ However, if you're interested in using Terraform for other infrastructure-as-cod
 
        terraform output -json > details.json
 
-4. Contact Technology Services to enable Enterprise VPC networking features.  (Note: the Core Services Transit Gateways _accept_ new attachments automatically, but will not _route_ to them until explicitly provisioned.)
+4. Contact Technology Services to enable Enterprise VPC networking features.
 
    * Attach the `details.json` file generated in the previous step.
+
+   (The Core Services Transit Gateways _accept_ new attachments automatically, but will not _route_ to them until explicitly provisioned.)
 
 5. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
 
@@ -184,43 +181,43 @@ Notice that the `example-service` code is _not_ tightly coupled to the `vpc` cod
 
 After your VPC is deployed, the next logical step is to write additional infrastructure-as-code to deploy service-oriented resources into it (as illustrated by `example-service/`).  A few helpful hints:
 
-  * In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to keep them separate.
+  * In general, IaC for service-oriented resources does _not_ need to reside in the same source control repository as the IaC for your shared networking resources; on the contrary, it is often advantageous to maintain them separately.
 
   * Don't change the name (i.e. tag:Name) of a VPC or Subnet once you deploy it.  This allows service IaC environments to reference VPC and Subnet objects by tag:Name, with the expectation that those values will remain stable even if the objects themselves must be destroyed and rebuilt (resulting in new IDs and ARNs).
 
   * Multiple IaC environments for the same AWS account can share the same S3 bucket for Terraform state, **provided that each environment's backend configuration stanza specifies a different `key` value**.
 
-    This example code suggests the following pattern:
+    Of course you can name them however you like, but this example code suggests the following pattern:
 
         key = "Shared Networking/global/terraform.tfstate"
         key = "Shared Networking/vpc/terraform.tfstate"
 
-    where 'Shared Networking' is meant to uniquely identify this IaC _repository_, and 'global' or 'vpc' the environment directory within this repository.
+    where 'Shared Networking' is meant to uniquely identify this IaC _repository_, and 'global' or 'vpc' the specific environment directory within this repository.
 
     Note that the key for `example-service` does _not_ begin with 'Shared Networking' because it's a separate piece of IaC which would normally reside in its own repository.
 
 
 ### Multiple VPCs
 
-To create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `other-vpc/` and modify the necessary values in the new files.
+To create a second VPC in the same AWS account, just copy the `vpc/` environment directory (**excluding** the `vpc/.terraform/` subdirectory, if any) to e.g. `another-vpc/` and modify the necessary values in the new files.
 
-**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `other-vpc/backend.tf` before running Terraform in the new environment!
+**IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `another-vpc/backend.tf` before running Terraform in the new environment!
 
     .
     ├── global/
     ├── vpc/
-    └── other-vpc/
+    └── another-vpc/
 
-You may find it convenient to name the environment directories after the VPCs themselves (e.g. "foobar1-vpc").
+You may find it convenient to name the VPC environment directories after the VPCs themselves (e.g. "foobar1-vpc").
 
 
 #### Multiple Regions
 
-To create your new VPC in a different region, simply edit the `region` variable value in e.g. `other-vpc/terraform.tfvars`.
+To create your new VPC in a different region, simply edit the `region` variable value in e.g. `another-vpc/terraform.tfvars`.
 
-* Do _not_ modify the hardcoded region names in `other-vpc/backend.tf`; this is the region of the S3 bucket for Terraform state, which does not depend on the region(s) of your VPCs.
+* Do _not_ modify the hardcoded region names in `another-vpc/backend.tf`; this is the region of the S3 bucket for Terraform state, which does not depend on the region(s) of your VPCs.
 
-* You _may_ need to add more per-region singleton resources in `global/main.tf` (following the established pattern)
+* You _may_ need to add more per-region singleton resources in `global/main.tf` (following the established patterns).
 
 
 ### Multiple AWS accounts

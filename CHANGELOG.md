@@ -1,34 +1,37 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.0] - Unreleased
+## [Unreleased]
+
+## [0.10.0] - 2021-06-07
 
 ### Added
-- attach to Transit Gateway shared from the Core Services account
-- routes from VPC to Transit Gateway based on shared prefix lists
+- accept Resource Access Manager (RAM) shares from other accounts
+- attach to Transit Gateway (shared from the Core Services account)
+- route from VPC to Transit Gateway based on shared prefix lists
 - support Amazon-assigned IPv6 (but disabled by default) for public- and private-facing subnets
+- Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
+- example-service demonstrates cloud-init
 - convenient IAM Role for creating Flow Logs
-- demonstrate cloud-init in example-service
 - vpn-connection now supports Transit Gateway (as well as VPN Gateway)
 - prevent accidental destruction/replacement of RDNS forwarders
-- accept Resource Access Manager (RAM) shares from other accounts
-- Terraform module to bootstrap S3 bucket and DynamoDB table for remote state
 - rdns-forwarder custom metrics for mem and disk usage
 
 ### Changed
 - requires Terraform 0.15.x
-- common choices can now be made in terraform.tfvars rather than editing main.tf
 - backend configuration for Terraform remote state is moved to backend.tf
-- default vpc environment now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
-- default vpc environment now omits private-facing subnets
+- other common choices can now be made in terraform.tfvars rather than editing main.tf
+- default for vpc environment now omits NAT gateways (to save money) leaving private-facing subnets with no outbound Internet access
+- default for vpc environment now omits private-facing subnets
 - rdns-forwarder updated to Amazon Linux 2, t4g.micro
-- update example-service to Amazon Linux 2, t3.nano
+- example-service updated to Amazon Linux 2, t3.nano
 - vpn-connection CloudWatch Alarm uses native metrics instead of old custom "VPNStatus" metrics
 - vpn-connection CloudWatch Alarm is now located in the VPN connection's region instead of a fixed singleton region
 - SNS topics for VPN monitoring alerts are now per-region
-- pcx_ids (in subnet modules) is now map instead of list, and dependencies are implicit
+- pcx_ids in subnet modules is now map instead of list, and dependencies are implicit
 - attach vgw to vpc using explicit aws_vpn_gateway_attachment resource (instead of vpc_id attribute)
 
 ### Deprecated
