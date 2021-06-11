@@ -3,8 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  # constrain minor version until 1.0 is released
-  required_version = "~> 0.15.0"
+  required_version = "~> 1.0"
 
   required_providers {
     aws = {

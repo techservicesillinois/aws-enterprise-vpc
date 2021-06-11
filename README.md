@@ -69,7 +69,7 @@ You can run this code from any workstation (even a laptop); there is no need for
 If you just want to deploy your VPC as quickly as possible, you can install Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this:
 
     mkdir -p ~/.local/bin
-    export VERSION=0.15.0
+    export VERSION=1.0.0
     wget -P /tmp https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
     unzip -d ~/.local/bin /tmp/terraform_${VERSION}_linux_amd64.zip
     terraform --version

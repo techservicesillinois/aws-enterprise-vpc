@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 0.15"
+  required_version = ">= 1.0"
 
   required_providers {
     aws = {
