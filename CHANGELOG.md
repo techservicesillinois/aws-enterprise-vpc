@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - requires Terraform 1.x
+- bootstrap: use on-demand instead of provisioned capacity mode for DynamoDB table
 
 
 

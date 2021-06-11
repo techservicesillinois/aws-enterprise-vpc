@@ -90,9 +90,7 @@ resource "aws_dynamodb_table" "lock_table" {
   name = var.dynamodb_table
   tags = var.tags
 
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 1
-  write_capacity = 1
+  billing_mode = "PAY_PER_REQUEST"
 
   hash_key = "LockID"
 
