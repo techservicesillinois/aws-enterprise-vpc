@@ -51,6 +51,12 @@ variable "assign_generated_ipv6_cidr_block" {
   default     = false
 }
 
+variable "assign_ipv6_address_on_creation" {
+  description = "Should new network interfaces on IPv6-enabled subnets automatically get IPv6 addresses?"
+  type        = bool
+  default     = false
+}
+
 variable "subnets_by_availability_zone_suffix" {
   description = "Maps availability zone suffix (e.g. 'a' for us-east-2a) to subnet key to subnet details"
   type        = map
@@ -422,8 +428,7 @@ module "public-facing-subnet" {
   cidr_block        = each.value.cidr_block
   ipv6_cidr_block   = each.value.ipv6_cidr_block
 
-  # should interfaces in this subnet automatically get IPv6 addresses?
-  assign_ipv6_address_on_creation = false
+  assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
 
   vpc_id              = aws_vpc.vpc.id
   pcx_ids             = local.pcx_ids_local
@@ -463,8 +468,7 @@ module "private-facing-subnet" {
   cidr_block        = each.value.cidr_block
   ipv6_cidr_block   = each.value.ipv6_cidr_block
 
-  # should interfaces in this subnet automatically get IPv6 addresses?
-  assign_ipv6_address_on_creation = false
+  assign_ipv6_address_on_creation = var.assign_ipv6_address_on_creation
 
   vpc_id             = aws_vpc.vpc.id
   pcx_ids            = local.pcx_ids_local

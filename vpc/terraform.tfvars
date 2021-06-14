@@ -17,6 +17,9 @@ vpc_cidr_block = "192.0.2.0/24" #FIXME
 # Request an Amazon-provided IPv6 CIDR block (/56) for this VPC?
 assign_generated_ipv6_cidr_block = false
 
+# Should new network interfaces on IPv6-enabled subnets automatically get IPv6 addresses?
+assign_ipv6_address_on_creation = false
+
 # By default we will create four Subnets: one public-facing and one
 # campus-facing in each of two Availability Zones.
 #

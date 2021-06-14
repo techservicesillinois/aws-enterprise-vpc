@@ -97,9 +97,9 @@ resource "aws_subnet" "subnet" {
   vpc_id                  = var.vpc_id
 
   assign_ipv6_address_on_creation = (var.assign_ipv6_address_on_creation != null
-    # honor explicit override
-    ? var.assign_ipv6_address_on_creation
-    # default to true iff the subnet has IPv6
+    # honor explicit override if subnet has IPv6
+    ? (var.ipv6_cidr_block != null && var.assign_ipv6_address_on_creation)
+    # default to true iff subnet has IPv6
     : (var.ipv6_cidr_block != null)
   )
 }
