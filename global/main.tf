@@ -92,7 +92,7 @@ resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-2" {
 # Note: this solution is deprecated in favor of Transit Gateway.
 
 module "cgw_us-east-1" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.11"
 
   tags = var.tags
 
@@ -102,7 +102,7 @@ module "cgw_us-east-1" {
 }
 
 module "cgw_us-east-2" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.11"
 
   tags = var.tags
 

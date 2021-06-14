@@ -254,7 +254,7 @@ locals {
 # deploying NAT gateways).
 
 module "nat" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.10"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.11"
   for_each = { for az_suffix,subnet_key in var.nat_gateways : "${var.region}${az_suffix}" => {
     az_suffix  = az_suffix
     subnet_key = subnet_key
@@ -301,7 +301,7 @@ resource "aws_vpn_gateway_attachment" "vgw_attachment" {
 }
 
 module "vpn1" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.11"
   count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
@@ -336,7 +336,7 @@ resource "null_resource" "vpn1" {
 }
 
 module "vpn2" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.11"
   count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
@@ -419,7 +419,7 @@ locals {
 }
 
 module "public-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.10"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.11"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "public" }
 
   tags              = var.tags
@@ -438,7 +438,7 @@ module "public-facing-subnet" {
 }
 
 module "campus-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.10"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.11"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "campus" }
 
   tags              = var.tags
@@ -459,7 +459,7 @@ module "campus-facing-subnet" {
 }
 
 module "private-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.10"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.11"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "private" }
 
   tags              = var.tags

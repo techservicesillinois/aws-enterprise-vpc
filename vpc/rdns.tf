@@ -97,7 +97,7 @@ resource "aws_vpc_dhcp_options_association" "dhcp_assoc_option2" {
 
 module "rdns-a" {
   count  = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.11"
 
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-a"
@@ -132,7 +132,7 @@ resource "null_resource" "rdns-a" {
 
 module "rdns-b" {
   count  = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.10"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=v0.11"
 
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-rdns-b"
