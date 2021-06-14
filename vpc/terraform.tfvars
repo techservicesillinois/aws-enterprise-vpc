@@ -15,7 +15,7 @@ vpc_short_name = "foobar1" #FIXME
 vpc_cidr_block = "192.0.2.0/24" #FIXME
 
 # Request an Amazon-provided IPv6 CIDR block (/56) for this VPC?
-assign_generated_ipv6_cidr_block = false
+assign_generated_ipv6_cidr_block = true
 
 # Should new network interfaces on IPv6-enabled subnets automatically get IPv6 addresses?
 assign_ipv6_address_on_creation = false
