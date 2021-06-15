@@ -13,7 +13,19 @@ The basic idea:
   4. Run `terraform init -upgrade`
   5. Run `terraform plan` and VERY CAREFULLY read what it wants to change, paying particular attention to any resources which will be destroyed and created (as opposed to updated in-place).
   6. Check the notes below for hints to whittle down this change set, e.g. by renaming resources in your terraform state to reflect code refactoring.
-  7. If and when you're confident that the plan will not cause unacceptable disruption, apply it.  When that's done, run an extra apply (which shouldn't need to do anything) just to make sure everything is stable.
+  7. If using [RDNS Forwarders](modules/rdns-forwarder/README.md), be careful to replace them one at a time!
+
+     _Hint:_ one way to accomplish this is using a [targeted](https://www.terraform.io/docs/cli/commands/plan.html#resource-targeting) apply, e.g.
+
+         terraform apply -target module.rdns-a
+
+  8. If and when you're confident that the plan will not cause unacceptable disruption, apply it.  When that's done, run an extra apply (which shouldn't need to do anything) just to make sure everything is stable.
+
+
+
+## from v0.10 to v0.11
+
+This is straightforward, since the only significant change is upgrading to the official stable 1.0 release of Terraform.
 
 
 

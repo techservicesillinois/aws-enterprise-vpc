@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+
+
+## [0.11.0] - 2021-06-14
+
 ### Changed
 - requires Terraform 1.x
 - assign_ipv6_address_on_creation silently ignored for non-IPv6 subnets, can be enabled in vpc/terraform.tfvars
