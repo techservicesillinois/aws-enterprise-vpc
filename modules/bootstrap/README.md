@@ -2,7 +2,7 @@
 
 This directory provides a Terraform module to create the two resources needed for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html):
 
-  * an S3 bucket **with versioning enabled**
+  * an S3 bucket with [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) and [server-side encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-encryption.html)
   * a DynamoDB table with a specific schema for state locking
 
 

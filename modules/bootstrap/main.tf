@@ -80,6 +80,15 @@ resource "aws_s3_bucket" "remote_state_bucket" {
     enabled = true
   }
 
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        # use Amazon S3-managed keys (SSE-S3)
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
   # Terraform should never destroy this resource
   lifecycle {
     prevent_destroy = true
