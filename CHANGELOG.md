@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - bootstrap: enable default S3 server-side encryption
 
+### Changed
+- vpc: extend workaround to accommodate a third AZ in transit_gateway_attachment_subnets
+
 
 
 ## [0.11.0] - 2021-06-14

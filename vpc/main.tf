@@ -220,10 +220,13 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "tgw_attach" {
   subnet_ids = [for az_suffix,subnet_key in var.transit_gateway_attachment_subnets :
     subnet_key == "public1-a-net" ? module.public-facing-subnet["public1-a-net"].id :
     subnet_key == "public1-b-net" ? module.public-facing-subnet["public1-b-net"].id :
+    subnet_key == "public1-c-net" ? module.public-facing-subnet["public1-c-net"].id :
     subnet_key == "campus1-a-net" ? module.campus-facing-subnet["campus1-a-net"].id :
     subnet_key == "campus1-b-net" ? module.campus-facing-subnet["campus1-b-net"].id :
+    subnet_key == "campus1-c-net" ? module.campus-facing-subnet["campus1-c-net"].id :
     subnet_key == "private1-a-net" ? module.private-facing-subnet["private1-a-net"].id :
     subnet_key == "private1-b-net" ? module.private-facing-subnet["private1-b-net"].id :
+    subnet_key == "private1-c-net" ? module.private-facing-subnet["private1-c-net"].id :
     # https://github.com/hashicorp/terraform/issues/15469#issuecomment-515240849
     file("\nERROR: var.transit_gateway_attachment_subnets contains unexpected subnet '${subnet_key}'")]
 
