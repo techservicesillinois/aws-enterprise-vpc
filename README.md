@@ -168,7 +168,10 @@ If you like, you can now deploy the `example-service` environment to launch an E
     cd example-service
     terraform init
     terraform apply
-    cd ..
+
+If you supplied values for `ssh_ipv4_cidr_blocks` and `ssh_public_key`, you should now be able to connect to the public IPv4 address of the instance (output by Terraform as `public_ip`) with e.g.
+
+    ssh -i identity_file ec2-user@a.b.c.d
 
 When you're done testing the example service environment, clean it up with `terraform destroy`.
 
@@ -204,6 +207,7 @@ To create a second VPC in the same AWS account, just copy the `vpc/` environment
 **IMPORTANT**: **don't forget to change `key`** in the backend configuration stanza of `another-vpc/backend.tf` before running Terraform in the new environment!
 
     .
+    ├── bootstrap/ (optional)
     ├── global/
     ├── vpc/
     └── another-vpc/
@@ -226,9 +230,11 @@ If you wish to keep IaC for several different AWS accounts in the same repositor
 
     .
     ├── account1/
+    │   ├── bootstrap/ (optional)
     │   ├── global/
     │   └── vpc/
     └── account2/
+        ├── bootstrap/ (optional)
         ├── global/
         └── vpc/
 

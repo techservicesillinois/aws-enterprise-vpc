@@ -18,7 +18,7 @@ To create these resources (only once per AWS account):
 
        replacing 'uiuc-tech-services-sandbox' with the friendly name of your AWS account.
 
-  2. In an empty directory,
+  2. In an empty directory (suggested name: `bootstrap`),
 
          terraform init -from-module=git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/bootstrap
          terraform apply
