@@ -57,7 +57,7 @@ You will need:
      - vpc_cidr_block
      - cidr_block (multiple occurrences, all different values)
 
-You may wish to make additional changes based on your specific needs; read the comments for some hints.  If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with four subnets (one public-facing and one campus-facing in each of two Availability Zones), no NAT Gateways, and no IPv6, i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
+You may wish to make additional changes based on your specific needs; read the comments for some hints.  If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with IPv6, four subnets (one public-facing and one campus-facing in each of two Availability Zones), and no NAT Gateways, i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
