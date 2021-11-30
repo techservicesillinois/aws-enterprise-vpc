@@ -36,6 +36,10 @@ variable "tags" {
 
 ## Outputs
 
+output "aws-enterprise-vpc_version" {
+  value = "v0.11"
+}
+
 output "customer_gateway_ids" {
   value = {
     us-east-1 = module.cgw_us-east-1.customer_gateway_ids

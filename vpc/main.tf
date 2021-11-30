@@ -109,6 +109,10 @@ variable "tags" {
 
 ## Outputs
 
+output "aws-enterprise-vpc_version" {
+  value = "v0.11"
+}
+
 output "account_id" {
   value = var.account_id
 }
