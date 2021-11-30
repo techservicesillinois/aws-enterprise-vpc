@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+
+
+## [0.11.1] - 2021-11-30
+
 ### Added
 - bootstrap: enable default S3 server-side encryption
 - output `aws-enterprise-vpc_version`
