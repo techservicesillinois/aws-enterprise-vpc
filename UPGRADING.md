@@ -27,6 +27,8 @@ The basic idea:
 
 This is straightforward, since the only significant change is upgrading to the official stable 1.0 release of Terraform.
 
+You can also adapt the instructions below to upgrade aws-enterprise-vpc directly from v0.9 to v0.11 (skipping v0.10).  In this case, you must still perform an apply using Terraform 0.13.x, then 0.14.x, and then 1.0.x (but you can skip 0.15.x); see also <https://www.terraform.io/upgrade-guides/1-0.html>
+
 
 
 ## from v0.9 to v0.10
