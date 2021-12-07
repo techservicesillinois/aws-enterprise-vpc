@@ -27,7 +27,9 @@ The basic idea:
 
 This is straightforward, since the only significant change is upgrading to the official stable 1.0 release of Terraform.
 
-You can also adapt the instructions below to upgrade aws-enterprise-vpc directly from v0.9 to v0.11 (skipping v0.10).  In this case, you must still perform an apply using Terraform 0.13.x, then 0.14.x, and then 1.0.x (but you can skip 0.15.x); see also <https://www.terraform.io/upgrade-guides/1-0.html>
+You can also adapt the instructions below to upgrade aws-enterprise-vpc directly from v0.9 to v0.11 (skipping v0.10).  In this case:
+  - You must still perform an apply using Terraform 0.13.x, then 0.14.x, and then 1.0.x (but you can skip 0.15.x); see also <https://www.terraform.io/upgrade-guides/1-0.html>
+  - In Phase 4, also set `assign_generated_ipv6_cidr_block = false` (this was the default in v0.10, but in v0.11 it defaults to true which would result in more resource changes)
 
 
 
