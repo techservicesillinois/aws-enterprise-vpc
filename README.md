@@ -25,7 +25,9 @@ One thing you should know: **if at first you don't succeed, try 'apply' again.**
 
 You will need:
 
-  * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html)
+  * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html) for your desired region
+
+  * the Amazon Resource Names (ARNs) of those resource shares
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 

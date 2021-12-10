@@ -23,7 +23,7 @@ variable "account_id" {
 }
 
 variable "resource_share_arns" {
-  description = "Optional list of existing RAM shares from other accounts (e.g. arn:aws:ram:us-east-2:123456789012:resource-share/abcd1234) to accept"
+  description = "Optional list of RAM shares to accept from other accounts (e.g. arn:aws:ram:us-east-2:123456789012:resource-share/abcd1234)"
   type        = list(string)
   default     = []
 }
