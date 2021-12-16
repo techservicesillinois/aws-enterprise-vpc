@@ -26,6 +26,8 @@
   loop:
     - bind
     - amazon-cloudwatch-agent
+    - collectd
+    - collectd-bind
 
 - name: configure amazon-cloudwatch-agent
   template:
@@ -33,6 +35,7 @@
     src: opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     # check JSON syntax
     validate: python -m json.tool %s
+  notify: reboot
 
 - name: enable amazon-cloudwatch-agent
   service:
@@ -73,16 +76,33 @@
   # sure *everything* works as intended before we start answering queries
   notify: reboot
 
+- name: configure collectd
+  template:
+    dest: /etc/collectd.conf
+    src: etc/collectd.conf
+  notify: reboot
+
+- name: enable collectd at boot
+  service:
+    name: collectd
+    enabled: yes
+
+- name: logrotate.d/ansible
+  template:
+    dest: /etc/logrotate.d/ansible
+    src: etc/logrotate.d/ansible.j2
+
 - name: update existing packages
   yum:
     name: '*'
     state: latest
   notify: reboot
 
-- name: logrotate.d/ansible
-  template:
-    dest: /etc/logrotate.d/ansible
-    src: etc/logrotate.d/ansible.j2
+- name: cron task to perform self-test query for metrics
+  cron:
+    name: self-test query for metrics
+    job: "dig @localhost illinois.edu in a &> /dev/null"
+    minute: "*"
 
 - name: cron task to update zone configuration (using current playbook)
   cron:

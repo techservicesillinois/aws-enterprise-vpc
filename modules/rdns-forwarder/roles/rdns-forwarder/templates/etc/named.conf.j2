@@ -52,5 +52,9 @@ controls {
     inet 127.0.0.1 allow { localhost; } keys { "rndc-key"; };
 };
 
+statistics-channels {
+  inet 127.0.0.1 port 8053 allow { 127.0.0.1; };
+};
+
 # forward queries for University zones to Core Services Resolvers instead
 include "/var/named/zones.conf";

@@ -25,7 +25,7 @@ To avoid impacting other resources in your VPC, please observe the following rec
 
   1. Deploy at least two RDNS Forwarders and configure them to perform their automated updates at different times.
 
-  2. Periodically test (from within your VPC) that each of your RDNS Forwarders can successfully answer queries for at least one University domain and at least one non-University domain.
+  2. Periodically test (from within your VPC) that each of your RDNS Forwarders can successfully answer queries for at least one University domain and at least one non-University domain, and/or at least monitor the `tx-NOERROR` metric (explained below).
 
   3. If you ever need to replace an RDNS Forwarder (e.g. to upgrade to a larger size instance, or to a new MAJOR.MINOR version branch of this repository),
      * Take down only one RDNS Forwarder at a time.
@@ -41,7 +41,20 @@ If a _newly created_ RDNS Forwarder (using the latest release of this repository
 
 System logs are published under log group `rdns-forwarder` in [CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/) to help with post-mortem analysis of any problems.
 
-Use [CloudWatch Metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/working_with_metrics.html) to view the [default AWS/EC2 metrics](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html) plus some additional custom metrics published under namespace `rdns-forwarder`.
+Use [CloudWatch Metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/working_with_metrics.html) to view the [default AWS/EC2 metrics](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html) plus some additional custom metrics published under namespace `rdns-forwarder`.  Of particular note:
+
+  * collectd_bind_value `tx-NOERROR` counts the number of queries that resulted in a successful, non-empty answer.
+
+    * This is a monotonically increasing counter, so use a DIFF() or RATE() [metric math function](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax) to see the _new_ occurences per time period.
+
+    * Periodic DNS queries to localhost from cron ensure that `tx-NOERROR` should increase at least once per minute while the RDNS Forwarder is functioning properly, even when no external clients are making queries.
+
+    * Technical note: `tx-NOERROR` comes from [BIND nsstat](https://bind9.readthedocs.io/en/latest/reference.html#name-server-statistics-counters) QrySuccess, which counts "queries which return a NOERROR response with at least one answer RR."  This does _not_ include the "negative" responses of NXDOMAIN, or NOERROR with zero answer records (sometimes called "NXRRSET" but not technically a distinct [RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1)); those responses also indicate successful and correct behavior on the part of the RDNS Forwarder, but are typically a small minority share compared to `tx-NOERROR`.
+
+  * collectd_bind_value `tx-SERVFAIL` (from BIND nsstat QrySERVFAIL) counts the number of queries that resulted in SERVFAIL ([RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1) 2).
+
+    * SERVFAIL responses do not necessarily indicate a malfunction of the RDNS Forwarder; they often occur when the RDNS Forwarder is legitimately unable to answer a query for a particular domain name because of a problem with that domain's _authoritative_ DNS.  However, an excessive quantity of SERVFAIL responses may be a sign that something is wrong.
+
 
 ## How to Deploy
 
