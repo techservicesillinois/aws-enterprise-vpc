@@ -1,6 +1,8 @@
 ﻿# AWS Recursive DNS Forwarder
 
-This directory provides both a Terraform module and an ansible-pull playbook to launch and configure an EC2 instance which will serve as a [**Recursive DNS Forwarder**](https://answers.uillinois.edu/illinois/page.php?id=74081) for your [Enterprise VPC](https://answers.uillinois.edu/illinois/page.php?id=71015).
+This directory provides both a Terraform module and an ansible-pull playbook to launch and configure an [Amazon Linux 2](https://aws.amazon.com/amazon-linux-2/) EC2 instance which will serve as a [**Recursive DNS Forwarder**](https://answers.uillinois.edu/illinois/page.php?id=74081) for your [Enterprise VPC](https://answers.uillinois.edu/illinois/page.php?id=71015).
+
+![RDNS Options diagram](https://answers.uillinois.edu/images/group180/74081/AWSRecursiveDNSOptions.png)
 
 RDNS Forwarders accept and answer recursive DNS queries _only_ from clients within your VPC.
 
@@ -13,7 +15,7 @@ RDNS Forwarders accept and answer recursive DNS queries _only_ from clients with
 
 RDNS Forwarders are designed to run completely unattended.  They use cron and [ansible-pull](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#ansible-pull) to perform two distinct types of automated self-updates:
 
-  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers as opposed to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](https://techservices.illinois.edu/services/ip-address-management), and `named` is instructed to reload the new configuration if it has changed.
+  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers instead of to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](https://techservices.illinois.edu/services/ip-address-management), and `named` is instructed to reload the new configuration if it has changed.
 
   * Once per month, a *full update* is performed based on the ansible code published in this git repository.  This includes a `yum -y update` to get the latest versions of all installed system packages [regardless of which Amazon Linux 2 AMI we started from](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config).
 
@@ -33,7 +35,7 @@ To avoid impacting other resources in your VPC, please observe the following rec
 
 ## Troubleshooting
 
-If an RDNS Forwarder stops working, destroy and recreate it from scratch.
+If an existing RDNS Forwarder stops working, destroy and recreate it from scratch.
 
 If a _newly created_ RDNS Forwarder (using the latest release of this repository) doesn't work, contact Technology Services for help.  Note that a newly created RDNS Forwarder may take up to 5 minutes to configure itself and begin answering queries.
 
