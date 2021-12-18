@@ -137,6 +137,15 @@ However, if you're interested in using Terraform for other infrastructure-as-cod
        terraform apply
        cd ..
 
+   * The global environment automatically creates [Simple Notification Service](https://aws.amazon.com/sns/) topics which can be used later for optional [CloudWatch alarm notifications](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-actions).
+
+     If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topics (indicated by the Terraform output "vpn_monitor_arn"):
+
+         aws sns subscribe --region us-east-2 --topic-arn arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic \
+          --protocol email --notification-endpoint my-email@example.com
+
+     (then check your email and follow the confirmation instructions)
+
 3. Next, deploy the `vpc` environment to create your VPC:
 
        cd vpc

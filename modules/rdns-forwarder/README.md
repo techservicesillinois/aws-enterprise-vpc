@@ -27,6 +27,8 @@ To avoid impacting other resources in your VPC, please observe the following rec
 
   2. Periodically test (from within your VPC) that each of your RDNS Forwarders can successfully answer queries for at least one University domain and at least one non-University domain, and/or at least monitor the `tx-NOERROR` metric (explained below).
 
+     * Pass `create_alarm = true` to automatically create a [CloudWatch alarm](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html) based on the `tx-NOERROR` metric.
+
   3. If you ever need to replace an RDNS Forwarder (e.g. to upgrade to a larger size instance, or to a new MAJOR.MINOR version branch of this repository),
      * Take down only one RDNS Forwarder at a time.
      * Test the other one first to make sure it is working as expected.
@@ -79,6 +81,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        private_ip               = "192.0.2.4" #FIXME
        zone_update_minute       = "5"
        full_update_day_of_month = "1"
+       create_alarm             = true
      }
 
      module "rdns-b" {
@@ -93,6 +96,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        private_ip               = "192.0.2.132" #FIXME
        zone_update_minute       = "35"
        full_update_day_of_month = "15"
+       create_alarm             = true
      }
      ```
 

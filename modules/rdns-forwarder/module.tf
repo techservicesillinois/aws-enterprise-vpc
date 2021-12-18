@@ -107,6 +107,44 @@ variable "full_update_minute" {
   }
 }
 
+variable "create_alarm" {
+  description = "Set true to create a CloudWatch Metric Alarm"
+  type        = bool
+  default     = false
+}
+
+variable "alarm_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an ALARM state from any other state, e.g. [arn:aws:sns:us-east-2:999999999999:vpc-monitor-topic]"
+  type        = list(string)
+  default     = []
+}
+
+variable "insufficient_data_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an INSUFFICIENT_DATA state from any other state."
+  type        = list(string)
+  default     = []
+}
+
+variable "ok_actions" {
+  description = "Optional list of actions (ARNs) to execute when the alarm transitions into an OK state from any other state."
+  type        = list(string)
+  default     = []
+}
+
+# see https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarm-evaluation
+variable "alarm_period" {
+  type        = number
+  default     = 60
+}
+variable "alarm_evaluation_periods" {
+  type        = number
+  default     = 2
+}
+variable "alarm_datapoints_to_alarm" {
+  type        = number
+  default     = 2
+}
+
 variable "tags" {
   description = "Optional custom tags for all taggable resources"
   type        = map
@@ -133,6 +171,12 @@ variable "tags_security_group" {
 
 variable "tags_iam_role" {
   description = "Optional custom tags for aws_iam_role resource"
+  type        = map
+  default     = {}
+}
+
+variable "tags_cloudwatch_metric_alarm" {
+  description = "Optional custom tags for aws_cloudwatch_metric_alarm resource"
   type        = map
   default     = {}
 }
@@ -349,4 +393,49 @@ resource "aws_iam_role_policy_attachment" "CloudWatchAgentServerPolicy" {
   # note: tags not supported
   role       = aws_iam_role.role.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# Optional CloudWatch Alarm
+
+resource "aws_cloudwatch_metric_alarm" "tx-NOERROR" {
+  count = var.create_alarm ? 1 : 0
+
+  tags              = merge(var.tags, var.tags_cloudwatch_metric_alarm)
+  alarm_name        = "${lookup(var.tags, "Name", "rdns")} tx-NOERROR | ${aws_instance.forwarder.id}"
+  alarm_description = "verify rdns-forwarder is answering at least some queries successfully"
+
+  metric_query {
+    id          = "e1"
+    return_data = "true"
+    label       = "DIFF(tx-NOERROR)"
+    expression  = "IF(DIFF(m1)>=0,DIFF(m1),0)"
+  }
+
+  metric_query {
+    id = "m1"
+
+    metric {
+      namespace   = "rdns-forwarder"
+      metric_name = "collectd_bind_value"
+      dimensions  = {
+        InstanceId    = aws_instance.forwarder.id
+        instance      = "global-server_stats"
+        type          = "dns_rcode"
+        type_instance = "tx-NOERROR"
+      }
+
+      stat   = "Maximum"
+      period = var.alarm_period
+    }
+  }
+
+  comparison_operator = "LessThanOrEqualToThreshold"
+  threshold           = 0
+  treat_missing_data  = "breaching"
+  evaluation_periods  = var.alarm_evaluation_periods
+  datapoints_to_alarm = var.alarm_datapoints_to_alarm
+
+  alarm_actions             = var.alarm_actions
+  insufficient_data_actions = var.insufficient_data_actions
+  ok_actions                = var.ok_actions
 }

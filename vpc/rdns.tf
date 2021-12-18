@@ -115,6 +115,11 @@ module "rdns-a" {
 
   zone_update_minute       = "5"
   full_update_day_of_month = "1"
+
+  create_alarm              = true
+  alarm_actions             = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  insufficient_data_actions = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
 resource "null_resource" "rdns-a" {
@@ -147,6 +152,11 @@ module "rdns-b" {
 
   zone_update_minute       = "35"
   full_update_day_of_month = "15"
+
+  create_alarm              = true
+  alarm_actions             = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  insufficient_data_actions = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
+  ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
 resource "null_resource" "rdns-b" {
