@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+
+
+## [0.11.2] - 2021-12-20
+
 ### Added
 - rdns-forwarder: log BIND statistics, publish tx-NOERROR and tx-SERVFAIL as CloudWatch metrics
 - rdns-forwarder: optional CloudWatch alarm when tx-NOERROR is not increasing (or missing)
