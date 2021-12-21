@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- rdns-forwarder: retry if initial ansible-pull fails
+
 
 
 ## [0.11.2] - 2021-12-20
