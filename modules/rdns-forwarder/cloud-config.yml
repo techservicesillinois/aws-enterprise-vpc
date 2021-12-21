@@ -61,4 +61,4 @@ packages:
 
 runcmd:
 # initial ansible-pull
-- ansible-pull --url=${ansible_pull_url} --checkout=${ansible_pull_checkout} --directory=${ansible_pull_directory} modules/rdns-forwarder/local.yml > /dev/null
+- ansible-pull --url=${ansible_pull_url} --checkout=${ansible_pull_checkout} --directory=${ansible_pull_directory} modules/rdns-forwarder/local.yml > /dev/null || (logger "initial ansible-pull failed, will retry in 60s with cloud-init clean --reboot"; sleep 60; cloud-init clean --reboot)
