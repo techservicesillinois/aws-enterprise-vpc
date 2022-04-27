@@ -15,18 +15,19 @@
 
 bootcmd:
 
-# use Amazon DNS as a backup in case our resolvers are down (now)
-- echo "nameserver ${amazon_dns}" >> /etc/resolv.conf
+# use Amazon DNS locally, to avoid circular dependency (now)
+- [ cloud-init-per, once, amazon_dns, sed, "-i", "-e", "/^nameserver /d ; 1i nameserver ${amazon_dns}", "/etc/resolv.conf" ]
 
 # enable EPEL
 - [ cloud-init-per, once, enable_epel, yum, "-y", install, "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm" ]
 
 write_files:
 
-# use Amazon DNS as a backup in case our resolvers are down (in the future)
 - path: /etc/dhcp/dhclient.conf
   append: true
-  content: append domain-name-servers ${amazon_dns};
+  content: |
+    # use Amazon DNS locally, to avoid circular dependency
+    supersede domain-name-servers ${amazon_dns};
 
 # configure Ansible logging and avoid some warnings
 - path: /root/.ansible.cfg
