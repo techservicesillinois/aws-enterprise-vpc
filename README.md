@@ -154,11 +154,11 @@ However, if you're interested in using Terraform for other infrastructure-as-cod
 
    and generate the detailed output file needed for the following step:
 
-       terraform output -json > details.json
+       terraform output -json > details.json.txt
 
 4. Contact Technology Services to enable Enterprise VPC networking features.
 
-   * Attach the `details.json` file generated in the previous step.
+   * Attach the `details.json.txt` file generated in the previous step.
 
    (The Core Services Transit Gateways _accept_ new attachments automatically, but will not _route_ to them until explicitly provisioned.)
 

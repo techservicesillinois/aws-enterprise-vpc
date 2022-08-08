@@ -172,7 +172,7 @@ You can also adapt the instructions below to upgrade aws-enterprise-vpc directly
   32. In vpc/main.tf, TEMPORARILY comment out the 3 occurrences of `transit_gateway_id = local.transit_gateway_id_local` under `module "public-facing-subnet"`, `module "campus-facing-subnet"`, and `module "private-facing-subnet"`
   33. In vpc/terraform.tfvars, uncomment `use_transit_gateway = true`
   34. `terraform apply` (expected: 1 to add, 0 to change, 0 to destroy) to create your Transit Gateway Attachment (but NO routes)
-  35. `terraform output -json > details.json` and send details.json to Technology Services to provision our side of your attachment.
+  35. `terraform output -json > details.json.txt` and send details.json.txt to Technology Services to provision our side of your attachment.
 
       After this the Transit Gateway will be capable of routing traffic to your VPC, but actual traffic patterns will not change; the Core Services VPC will still prefer your existing VPC Peering Connection, and the campus network will still prefer your dedicated VPN connections.
 
