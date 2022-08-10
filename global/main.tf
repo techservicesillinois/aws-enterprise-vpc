@@ -23,7 +23,7 @@ variable "account_id" {
 }
 
 variable "resource_share_arns" {
-  description = "Optional list of RAM shares to accept from other accounts (e.g. arn:aws:ram:us-east-2:123456789012:resource-share/abcd1234)"
+  description = "Optional list of external RAM shares to accept from other accounts (e.g. arn:aws:ram:us-east-2:123456789012:resource-share/abcd1234)"
   type        = list(string)
   default     = []
 }
@@ -73,7 +73,9 @@ provider "aws" {
 
 ## Resources
 
-# accept RAM shares from other accounts (per region, add more regions if needed)
+# accept external RAM shares from other accounts (per region, add more regions if needed)
+#
+# NB: no longer needed for new shares within University of Illinois
 
 resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-1" {
   # note: tags not supported

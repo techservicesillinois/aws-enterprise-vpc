@@ -27,7 +27,7 @@ You will need:
 
   * an AWS account which has been added to the appropriate [resource shares](https://docs.aws.amazon.com/ram/latest/userguide/working-with-shared.html) for your desired region
 
-  * the Amazon Resource Names (ARNs) of those resource shares
+    _Note:_ as of Aug 2022 our cloud team has enabled sharing within our AWS Organization, so you no longer need to configure the Amazon Resource Names (ARNs) of these resource shares in your `global/terraform.tfvars` for newly added accounts
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
@@ -50,7 +50,6 @@ You will need:
      - bucket
    * in `global/terraform.tfvars`:
      - account_id
-     - resource_share_arns
    * in `vpc/backend.tf`:
      - bucket (2 occurrences, same value)
    * in `vpc/terraform.tfvars`:
