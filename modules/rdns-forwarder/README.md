@@ -76,6 +76,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        }
        instance_type            = "t4g.micro"
        instance_architecture    = "arm64"
+       encrypted                = true
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
        subnet_id                = module.public-facing-subnet["public1-a-net"].id
        private_ip               = "192.0.2.4" #FIXME
@@ -91,6 +92,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
        }
        instance_type            = "t4g.micro"
        instance_architecture    = "arm64"
+       encrypted                = true
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
        subnet_id                = module.public-facing-subnet["public1-b-net"].id
        private_ip               = "192.0.2.132" #FIXME

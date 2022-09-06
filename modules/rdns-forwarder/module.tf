@@ -35,6 +35,12 @@ variable "instance_architecture" {
   }
 }
 
+variable "encrypted" {
+  description = "Set true to encrypt the root EBS volume"
+  type        = bool
+  default     = false
+}
+
 variable "subnet_id" {
   description = "Subnet in which to launch, e.g. subnet-abcd1234.  Using a public-facing subnet is simplest, but a campus-facing or private-facing subnet will also work as long as it has outbound Internet connectivity (via a NAT Gateway)"
   type        = string
@@ -284,6 +290,10 @@ resource "aws_instance" "forwarder" {
   vpc_security_group_ids      = [aws_security_group.rdns.id]
   iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
   user_data_base64            = data.cloudinit_config.user_data.rendered
+
+  root_block_device {
+    encrypted = var.encrypted
+  }
 
   lifecycle {
     # Avoids unnecessary destruction and recreation of the instance by

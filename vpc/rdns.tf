@@ -105,6 +105,7 @@ module "rdns-a" {
 
   instance_type           = "t4g.micro"
   instance_architecture   = "arm64"
+  encrypted               = false
   core_services_resolvers = var.core_services_resolvers
   subnet_id               = module.public-facing-subnet["public1-a-net"].id
 
@@ -145,6 +146,7 @@ module "rdns-b" {
 
   instance_type           = "t4g.micro"
   instance_architecture   = "arm64"
+  encrypted               = false
   core_services_resolvers = var.core_services_resolvers
   subnet_id               = module.public-facing-subnet["public1-b-net"].id
 
