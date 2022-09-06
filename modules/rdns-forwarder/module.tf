@@ -222,6 +222,10 @@ data "aws_vpc" "selected" {
   id = data.aws_subnet.selected.vpc_id
 }
 
+data "aws_kms_key" "aws_ebs" {
+  key_id = "alias/aws/ebs"
+}
+
 # fail fast if instance_type and instance_architecture are incompatible
 data "aws_ec2_instance_type" "this" {
   instance_type = var.instance_type
@@ -284,6 +288,14 @@ resource "aws_instance" "forwarder" {
   vpc_security_group_ids      = [aws_security_group.rdns.id]
   iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
   user_data_base64            = data.cloudinit_config.user_data.rendered
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 8
+
+    encrypted  = true
+    kms_key_id = data.aws_kms_key.aws_ebs.arn
+  }
 
   lifecycle {
     # Avoids unnecessary destruction and recreation of the instance by
