@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- rdns-forwarder: EBS encryption with the default alias/aws/ebs KMS key.
+- rdns-forwarder: EBS volume type changed to gp3.
 
 
 ## [0.11.2] - 2021-12-20
