@@ -1,4 +1,4 @@
-﻿# AWS Enterprise VPC Example
+﻿# AWS Enterprise VPC
 
 This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC, as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
@@ -31,7 +31,7 @@ You will need:
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * a suitably configured workstation (see "Workstation Setup" further down)
+  * a suitably configured workstation (see "Workstation Setup" further down) _or_ [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/)
 
   * an S3 bucket **with versioning enabled** and a DynamoDB table with a specific schema, for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html)
 
@@ -62,20 +62,31 @@ You may wish to make additional changes based on your specific needs; read the c
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
-### Workstation Setup
-
-You can run this code from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow the ["golden rule of Terraform"](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
-> **"The master branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
+### AWS CloudShell Setup
 
 If you just want to deploy your VPC as quickly as possible, you can install Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this:
 
     mkdir -p ~/.local/bin
     export VERSION=1.0.0
     wget -P /tmp https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
-    unzip -d ~/.local/bin /tmp/terraform_${VERSION}_linux_amd64.zip
+    unzip -d ~/.local/bin /tmp/terraform_${VERSION}_linux_amd64.zip terraform
     terraform --version
 
-However, if you're interested in using Terraform for other infrastructure-as-code (IaC) projects beyond this one, it is worthwhile to go ahead and set up your regular workstation:
+Then follow [`modules/bootstrap/README.md`](modules/bootstrap/README.md) if needed, check out your (customized) live infrastructure-as-code repository with e.g.
+
+    git clone <url>
+
+and continue on to "Deployment Steps" below (skipping "Workstation Setup").
+
+However, if you're interested in using Terraform for other infrastructure-as-code (IaC) projects beyond this one, it is worthwhile to go ahead and set up your regular workstation.
+
+
+### Workstation Setup
+
+You can run this IaC from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow the ["golden rule of Terraform"](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
+> **"The master branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
+
+To set up your workstation:
 
   _Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
 
@@ -127,7 +138,7 @@ However, if you're interested in using Terraform for other infrastructure-as-cod
 
 ### Deployment Steps
 
-1. Set the `AWS_PROFILE` environment variable and run `aws login` if needed (see above).
+1. Set the `AWS_PROFILE` environment variable and run `aws login` if needed (see "Workstation Setup" above, note that this is *not* needed for AWS CloudShell).
 
 2. Deploy the `global` environment first.  This creates resources which apply to the entire AWS account rather than to a single VPC.
 
@@ -293,10 +304,3 @@ What this means (using hypothetical version numbers) is that if you base your ow
 * You will _not_ automatically receive any module changes released as `v1.3.*` or `v2.0.*` (since these changes might be incompatible with your usage and/or involve refactoring that could cause Terraform to unexpectedly destroy and recreate existing resources).
 
 Upgrading existing deployments to a new MAJOR.MINOR version is discussed in [`UPGRADING.md`](UPGRADING.md)
-
-
-
-## Known Issues
----------------
-
-* none
