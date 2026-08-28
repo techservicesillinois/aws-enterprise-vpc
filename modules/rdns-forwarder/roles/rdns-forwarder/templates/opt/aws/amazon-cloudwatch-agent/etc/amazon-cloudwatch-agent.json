@@ -31,13 +31,11 @@
           "used_percent"
         ]
       },
-{# we don't configure swap
       "swap": {
         "measurement": [
           "used_percent"
         ]
       },
-#}
       "disk": {
         "measurement": [
           "used_percent"

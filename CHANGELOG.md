@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - rdns-forwarder: retry if initial ansible-pull fails
+- rdns-forwarder: swap file
+
+### Changed
+- requires Terraform >= 1.2
+- rdns-forwarder: updated to Amazon Linux 2023
+- rdns-forwarder: `encrypted` now defaults to true
+
+### Fixed
+- rdns-forwarder: unable to bootstrap if DHCP provided 3 not-yet-functioning nameserver IPs
+
+### Removed
+- rdns-forwarder variable `instance_architecture` (now handled automatically)
 
 
 

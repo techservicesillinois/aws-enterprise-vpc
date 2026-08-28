@@ -9,6 +9,7 @@
   set_fact:
     #ansible_pull_url: https://github.com/techservicesillinois/aws-enterprise-vpc.git
     #ansible_pull_checkout: vX.Y
+    dummy_fact: Ansible requires at least one key/value pair here
 
 - name: update ansible_pull settings saved in host vars
   lineinfile:
@@ -21,6 +22,13 @@
 
 - ec2_metadata_facts:
 
+- sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value | string }}"
+  loop:
+    - name: vm.swappiness
+      value: 1
+
 - name: install packages
   package: name={{ item }} state=present
   loop:
@@ -28,13 +36,16 @@
     - amazon-cloudwatch-agent
     - collectd
     - collectd-bind
+    # AL2023 doesn't install rsyslog by default, but amazon-cloudwatch-agent
+    # can't read from systemd journal
+    - rsyslog
 
 - name: configure amazon-cloudwatch-agent
   template:
     dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     src: opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     # check JSON syntax
-    validate: python -m json.tool %s
+    validate: python3 -m json.tool %s
   notify: reboot
 
 - name: enable amazon-cloudwatch-agent
@@ -45,12 +56,12 @@
     state: started
 
 - name: generate rndc.key
-  command: /usr/sbin/rndc-confgen -a -u named -r /dev/urandom
+  command: /usr/sbin/rndc-confgen -a -u named
   args:
     creates: /etc/rndc.key
 
 # update /var/named/zones.conf
-- include: "zones.yml"
+- import_tasks: "zones.yml"
   tags:
     - zones
 
@@ -61,31 +72,11 @@
     validate: /usr/sbin/named-checkconf %s
   notify: rndc reconfig
 
-- name: named OPTIONS
-  lineinfile:
-    dest: /etc/sysconfig/named
-    regexp: '^OPTIONS='
-    line: 'OPTIONS="-4"'
-  notify: restart named
-
-- name: enable named at boot
-  service:
-    name: named
-    enabled: yes
-  # trigger a reboot (rather than just applying state: started now) to make
-  # sure *everything* works as intended before we start answering queries
-  notify: reboot
-
 - name: configure collectd
   template:
     dest: /etc/collectd.conf
     src: etc/collectd.conf
   notify: reboot
-
-- name: enable collectd at boot
-  service:
-    name: collectd
-    enabled: yes
 
 - name: logrotate.d/ansible
   template:
@@ -93,29 +84,86 @@
     src: etc/logrotate.d/ansible.j2
 
 - name: update existing packages
-  yum:
+  dnf:
     name: '*'
     state: latest
+    # https://docs.aws.amazon.com/linux/al2023/ug/managing-repos-os-updates.html
+    releasever: latest
   notify: reboot
 
-- name: cron task to perform self-test query for metrics
-  cron:
-    name: self-test query for metrics
-    job: "dig @localhost illinois.edu in a &> /dev/null"
-    minute: "*"
+- name: configure scheduled tasks
+  copy:
+    dest: "{{ item.dest }}"
+    content: "{{ item.content }}"
+  loop_control:
+    label: "{{ item.dest }}"
+  loop:
+    # perform self-test query for metrics
+    - dest: /etc/systemd/system/rdns-forwarder-self-query.service
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=dig @localhost illinois.edu in a
+        StandardOutput=null
+        StandardError=null
+    - dest: /etc/systemd/system/rdns-forwarder-self-query.timer
+      content: |
+        [Timer]
+        OnCalendar=*:*:0
+        AccuracySec=1s
+        [Install]
+        WantedBy=timers.target
 
-- name: cron task to update zone configuration (using current playbook)
-  cron:
-    name: update zones
-    # use an explicit login shell to avoid PATH surprises
-    job: "bash -lc 'ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones' > /dev/null"
-    minute: "{{ zone_update.minute }}"
+    # update zone configuration (using current playbook)
+    - dest: /etc/systemd/system/rdns-forwarder-update-zones.service
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=ansible-playbook {{ ansible_pull_directory }}/modules/rdns-forwarder/local.yml --tags=zones
+        StandardOutput=null
+        StandardError=journal
+    - dest: /etc/systemd/system/rdns-forwarder-update-zones.timer
+      content: |
+        [Timer]
+        OnCalendar=*:{{ zone_update.minute }}:0
+        AccuracySec=1s
+        RandomizedDelaySec=30
+        [Install]
+        WantedBy=timers.target
 
-- name: cron task for full ansible-pull update (including upstream playbook changes)
-  cron:
-    name: ansible-pull
-    # use an explicit login shell to avoid PATH surprises
-    job: "bash -lc 'ansible-pull --url={{ ansible_pull_url }} --checkout={{ ansible_pull_checkout }} --directory={{ ansible_pull_directory }} modules/rdns-forwarder/local.yml' > /dev/null"
-    day: "{{ full_update.day }}"
-    hour: "{{ full_update.hour }}"
-    minute: "{{ full_update.minute }}"
+    # full ansible-pull update (including upstream playbook changes)
+    - dest: /etc/systemd/system/rdns-forwarder-update-full.service
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=ansible-pull --url={{ ansible_pull_url }} --checkout={{ ansible_pull_checkout }} --directory={{ ansible_pull_directory }} modules/rdns-forwarder/local.yml
+        StandardOutput=null
+        StandardError=journal
+        # support async reboot handler
+        KillMode=process
+    - dest: /etc/systemd/system/rdns-forwarder-update-full.timer
+      content: |
+        [Timer]
+        OnCalendar=*-*-{{ full_update.day }} {{ full_update.hour }}:{{ full_update.minute }}:0
+        AccuracySec=1s
+        RandomizedDelaySec=30
+        [Install]
+        WantedBy=timers.target
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: enable at boot
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+  loop:
+    - named
+    - collectd
+    - rdns-forwarder-self-query.timer
+    - rdns-forwarder-update-zones.timer
+    - rdns-forwarder-update-full.timer
+  # trigger a reboot (rather than immediately applying state: started) to make
+  # sure *everything* works as intended before we start answering queries
+  notify: reboot

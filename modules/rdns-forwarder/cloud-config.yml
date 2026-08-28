@@ -10,23 +10,22 @@
 #
 # Detailed logs appear in /var/log/cloud-init.log
 
-# force instance replacement if this value changes:
-# ${instance_architecture}
-
 bootcmd:
 
-# use Amazon DNS as a backup in case our resolvers are down (now)
-- echo "nameserver ${amazon_dns}" >> /etc/resolv.conf
-
-# enable EPEL
-- [ cloud-init-per, once, enable_epel, yum, "-y", install, "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm" ]
+# use Amazon DNS locally, to avoid circular dependency (effective immediately,
+# first boot only)
+#
+# NB: 2 is the index of our primary network link from `networkctl list`
+- [ cloud-init-per, once, amazon_dns, resolvectl, dns, 2, "${amazon_dns}" ]
 
 write_files:
 
-# use Amazon DNS as a backup in case our resolvers are down (in the future)
-- path: /etc/dhcp/dhclient.conf
-  append: true
-  content: append domain-name-servers ${amazon_dns};
+- path: /etc/systemd/resolved.conf.d/override.conf
+  content: |
+    # use Amazon DNS locally, to avoid circular dependency
+    [Resolve]
+    DNS=${amazon_dns}
+    Domains=~.
 
 # configure Ansible logging and avoid some warnings
 - path: /root/.ansible.cfg
@@ -35,6 +34,10 @@ write_files:
     log_path=${ansible_logfile}
     localhost_warning=no
     interpreter_python=auto_silent
+    no_target_syslog=true
+    [inventory]
+    host_pattern_mismatch=ignore
+    inventory_unparsed_warning=no
 
 # host-specific variables for use within Ansible
 - path: /etc/ansible/host_vars/localhost.yml
@@ -54,6 +57,10 @@ write_files:
       day: "${full_update_day_of_month}"
       hour: "${full_update_hour}"
       minute: "${full_update_minute}"
+
+swap:
+  filename: /swapfile
+  size: 1G
 
 packages:
 - ansible

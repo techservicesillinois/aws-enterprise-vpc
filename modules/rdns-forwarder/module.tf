@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.2"
 
   required_providers {
     aws = {
@@ -24,21 +24,10 @@ variable "instance_type" {
   type        = string
 }
 
-variable "instance_architecture" {
-  description = "Architecture of the instance type ('x86_64', 'arm64')"
-  type        = string
-  default     = "x86_64"
-
-  validation {
-    condition     = contains(["x86_64", "arm64"], var.instance_architecture)
-    error_message = "Must be one of: 'x86_64', 'arm64'."
-  }
-}
-
 variable "encrypted" {
   description = "Set true to encrypt the root EBS volume"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "subnet_id" {
@@ -228,23 +217,24 @@ data "aws_vpc" "selected" {
   id = data.aws_subnet.selected.vpc_id
 }
 
-# fail fast if instance_type and instance_architecture are incompatible
 data "aws_ec2_instance_type" "this" {
   instance_type = var.instance_type
 }
-locals {
-  # workaround for lack of assertions https://github.com/hashicorp/terraform/issues/15469
-  assert_architecture = contains(data.aws_ec2_instance_type.this.supported_architectures, var.instance_architecture) ? null : file("ERROR: mismatch between instance type '${var.instance_type}' and architecture '${var.instance_architecture}'")
-}
 
-# Get the latest Amazon Linux 2 AMI named e.g. amzn2-ami-hvm-2.0.20210326.0-x86_64-gp2
+# Get the latest suitable Amazon Linux 2023 AMI named e.g.
+# al2023-ami-2023.12.20260629.0-kernel-6.12-x86_64
 data "aws_ami" "ami" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-${var.instance_architecture}-gp2"]
+    values = ["al2023-ami-2023.*"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = data.aws_ec2_instance_type.this.supported_architectures
   }
 }
 
@@ -269,9 +259,6 @@ data "cloudinit_config" "user_data" {
       full_update_day_of_month = var.full_update_day_of_month
       full_update_hour         = var.full_update_hour
       full_update_minute       = var.full_update_minute
-
-      # force instance replacement if this value changes
-      instance_architecture = var.instance_architecture
     })
   }
 }
@@ -296,23 +283,20 @@ resource "aws_instance" "forwarder" {
   }
 
   lifecycle {
-    # Avoids unnecessary destruction and recreation of the instance by
-    # Terraform when a new AMI is released.  Note that yum update will still
-    # get the latest packages regardless of which AMI we start from; see
-    # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config
+    # Avoid unnecessary destruction and recreation of the instance when a new
+    # AMI becomes available.
     ignore_changes = [ami]
-  }
 
-  # However, do force replacement if instance_architecture changes.
-  # Unfortunately depends_on doesn't actually achieve this (see
-  # https://github.com/hashicorp/terraform/issues/8099), so our workaround is
-  # to put instance_architecture in the user data (see above)
-  depends_on = [ null_resource.instance_architecture ]
+    # unless old AMI has the wrong architecture for our instance_type
+    replace_triggered_by = [
+      null_resource.instance_architecture
+    ]
+  }
 }
 
 resource "null_resource" "instance_architecture" {
   triggers = {
-    instance_architecture = var.instance_architecture
+    architecture = data.aws_ami.ami.architecture
   }
 }
 

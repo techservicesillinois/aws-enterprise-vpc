@@ -17,7 +17,7 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
   ```hcl
   resource "aws_key_pair" "test" {
     key_name_prefix = "test-"
-    public_key      = "ssh-rsa AAAAB3NzaC1yc2..." #FIXME
+    public_key      = "ssh-ed25519 AAAAC3Nz..." #FIXME
   }
 
   module "rdns-test" {
@@ -26,11 +26,11 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
       Name = "rdns-test"
     }
     instance_type           = "t4g.micro"
-    instance_architecture   = "arm64"
     core_services_resolvers = ["10.224.1.50", "10.224.1.100"] #FIXME
     subnet_id               = module.public-facing-subnet["public1-a-net"].id
     private_ip              = "192.0.2.5" #FIXME
     zone_update_minute      = "5"
+    create_alarm            = true
     # TESTING ONLY
     ansible_pull_checkout    = "TESTBRANCH" #FIXME
     full_update_day_of_month = "*"

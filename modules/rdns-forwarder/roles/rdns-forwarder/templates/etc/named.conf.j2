@@ -1,4 +1,4 @@
-# named.conf for AWS RDNS Forwarders using BIND 9.11 from Amazon Linux 2
+# named.conf for AWS RDNS Forwarders using BIND 9.18 from Amazon Linux 2023
 #
 # note: the distribution's default file can be found at
 # /usr/share/doc/bind*/named.conf.default
@@ -8,11 +8,13 @@ options {
     dump-file          "/var/named/data/cache_dump.db";
     statistics-file    "/var/named/data/named_stats.txt";
     memstatistics-file "/var/named/data/named_mem_stats.txt";
-    recursing-file     "/var/named/data/named.recursing";
     secroots-file      "/var/named/data/named.secroots";
+    recursing-file     "/var/named/data/named.recursing";
 
     allow-query { localhost; {{ vpc_cidr }}; };
     recursion yes;
+
+    dnssec-validation no;
 
     # forward queries to AmazonProvidedDNS by default
     forwarders { {{ amazon_dns }}; };
@@ -23,11 +25,6 @@ options {
     max-ncache-ttl {{ max_ncache_ttl | default(900) }};
 
     version none;
-
-    dnssec-enable yes; # return DNSSEC-related resource records
-    dnssec-validation no;
-
-    bindkeys-file "/etc/named.root.key";
 
     managed-keys-directory "/var/named/dynamic";
 

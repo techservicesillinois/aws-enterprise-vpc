@@ -1,6 +1,6 @@
 ﻿# AWS Recursive DNS Forwarder
 
-This directory provides both a Terraform module and an ansible-pull playbook to launch and configure an [Amazon Linux 2](https://aws.amazon.com/amazon-linux-2/) EC2 instance which will serve as a [**Recursive DNS Forwarder**](https://answers.uillinois.edu/illinois/page.php?id=74081) for your [Enterprise VPC](https://answers.uillinois.edu/illinois/page.php?id=71015).
+This directory provides both a Terraform module and an ansible-pull playbook to launch and configure an [Amazon Linux 2023](https://aws.amazon.com/linux/amazon-linux-2023/faqs/) EC2 instance which will serve as a [**Recursive DNS Forwarder**](https://answers.uillinois.edu/illinois/page.php?id=74081) for your [Enterprise VPC](https://answers.uillinois.edu/illinois/page.php?id=71015).
 
 ![RDNS Options diagram](https://answers.uillinois.edu/images/group180/74081/AWSRecursiveDNSOptions.png)
 
@@ -8,16 +8,16 @@ RDNS Forwarders accept and answer recursive DNS queries _only_ from clients with
 
   * If the query is for a University domain, your RDNS Forwarder forwards it to the **Core Services Resolvers** located in a Core Services VPC.  These resolvers are able to resolve DNS records in zones which are restricted to University clients only.
 
-  * If the query is for any other domain, your RDNS Forwarder instead forwards it to [AmazonProvidedDNS](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  AmazonProvidedDNS offers some special features whose behavior is specific to your VPC and cannot be replicated by the Core Services Resolvers.
+  * If the query is for any other domain, your RDNS Forwarder instead forwards it to [AmazonProvidedDNS](https://docs.aws.amazon.com/vpc/latest/userguide/AmazonDNS-concepts.html#AmazonDNS).  AmazonProvidedDNS offers some special features whose behavior is specific to your VPC and cannot be replicated by the Core Services Resolvers.
 
 
 ## Automated Updates
 
 RDNS Forwarders are designed to run completely unattended.  They use cron and [ansible-pull](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#ansible-pull) to perform two distinct types of automated self-updates:
 
-  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers instead of to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](https://techservices.illinois.edu/services/ip-address-management), and `named` is instructed to reload the new configuration if it has changed.
+  * Once per hour, the *zone configuration* (i.e. which individual zones' queries should be forwarded to the Core Services Resolvers instead of to AmazonProvidedDNS) is updated to reflect the latest list of zones maintained by the [IP Address Management service](https://help.uillinois.edu/TDClient/42/UIUC/Requests/Service/177/IP-Address-Management), and `named` is instructed to reload the new configuration if it has changed.
 
-  * Once per month, a *full update* is performed based on the ansible code published in this git repository.  This includes a `yum -y update` to get the latest versions of all installed system packages [regardless of which Amazon Linux 2 AMI we started from](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#repository-config).
+  * Once per month, a *full update* is performed based on the ansible code published in this git repository.  This includes a `dnf -y --releasever=latest update` to apply all available package updates [regardless of which Amazon Linux 2023 AMI we started from](https://docs.aws.amazon.com/linux/al2023/ug/managing-repos-os-updates.html).
 
     **The full update often involves a reboot, during which time the RDNS Forwarder will briefly stop answering queries.**
 
@@ -49,13 +49,13 @@ Use [CloudWatch Metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/mon
 
     * This is a monotonically increasing counter, so use a DIFF() or RATE() [metric math function](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax) to see the _new_ occurences per time period.
 
-    * Periodic DNS queries to localhost from cron ensure that `tx-NOERROR` should increase at least once per minute while the RDNS Forwarder is functioning properly, even when no external clients are making queries.
+    * Periodic DNS queries to localhost from inside the instance ensure that `tx-NOERROR` should increase at least once per minute while the RDNS Forwarder is functioning properly, even when no external clients are making queries.
 
-    * Technical note: `tx-NOERROR` comes from [BIND nsstat](https://bind9.readthedocs.io/en/latest/reference.html#name-server-statistics-counters) QrySuccess, which counts "queries which return a NOERROR response with at least one answer RR."  This does _not_ include the "negative" responses of NXDOMAIN, or NOERROR with zero answer records (sometimes called "NXRRSET" but not technically a distinct [RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1)); those responses also indicate successful and correct behavior on the part of the RDNS Forwarder, but are typically a small minority share compared to `tx-NOERROR`.
+    * Technical note: `tx-NOERROR` comes from [BIND nsstat](https://bind9.readthedocs.io/en/latest/reference.html#name-server-statistics-counters) `QrySuccess`, which counts "queries which return a NOERROR response with at least one answer RR."  This does _not_ include the "negative" responses of NXDOMAIN, or NOERROR with zero answer records (sometimes called "NXRRSET" but not technically a distinct [RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1)); those responses also indicate successful and correct behavior on the part of the RDNS Forwarder, but are typically a small minority share compared to `tx-NOERROR`.
 
-  * collectd_bind_value `tx-SERVFAIL` (from BIND nsstat QrySERVFAIL) counts the number of queries that resulted in SERVFAIL ([RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1) 2).
+  * collectd_bind_value `tx-SERVFAIL` (from BIND nsstat `QrySERVFAIL`) counts the number of queries that resulted in SERVFAIL ([RCODE](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1) 2).
 
-    * SERVFAIL responses do not necessarily indicate a malfunction of the RDNS Forwarder; they often occur when the RDNS Forwarder is legitimately unable to answer a query for a particular domain name because of a problem with that domain's _authoritative_ DNS.  However, an excessive quantity of SERVFAIL responses may be a sign that something is wrong.
+    * SERVFAIL responses do not necessarily indicate a malfunction of the RDNS Forwarder; they often occur when the RDNS Forwarder is legitimately unable to answer a query for a particular domain name because of a problem with that domain's authoritative DNS.  However, an _excessive_ quantity of SERVFAIL responses may be a sign that something is wrong.
 
 
 ## How to Deploy
@@ -75,8 +75,6 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
          Name = "${var.vpc_short_name}-rdns-a"
        }
        instance_type            = "t4g.micro"
-       instance_architecture    = "arm64"
-       encrypted                = true
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
        subnet_id                = module.public-facing-subnet["public1-a-net"].id
        private_ip               = "192.0.2.4" #FIXME
@@ -91,8 +89,6 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
            Name = "${var.vpc_short_name}-rdns-b"
        }
        instance_type            = "t4g.micro"
-       instance_architecture    = "arm64"
-       encrypted                = true
        core_services_resolvers  = ["10.224.1.50", "10.224.1.100"] #FIXME
        subnet_id                = module.public-facing-subnet["public1-b-net"].id
        private_ip               = "192.0.2.132" #FIXME
@@ -133,7 +129,7 @@ The AWS Enterprise VPC Example environment code includes a working example of ho
 
      * If your VPC already contains active clients, it's a good idea to manually test your new RDNS Forwarder instances _before_ enabling the custom DHCP Options Set.
 
-     * If you deploy RDNS Forwarders in your VPC and later decide to retire them, you will need to re-associate your VPC with the default DHCP Options Set (which directs clients to AmazonProvidedDNS).  After that, it's a good idea to leave the actual RDNS Forwarder instances in place for a while longer, so that they can continue to answer queries from clients which have not yet picked up the new DHCP options.
+     * If you deploy RDNS Forwarders in your VPC and later decide to retire them, you will need to re-associate your VPC with the default DHCP Options Set (which directs clients to AmazonProvidedDNS).  After doing that, it's a good idea to leave the actual RDNS Forwarder instances in place for a while longer, so that they can continue to answer queries from clients which have not yet picked up the new DHCP options.
 
 
 ## Known Issues
