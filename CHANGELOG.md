@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - requires Terraform >= 1.2
 - rdns-forwarder: updated to Amazon Linux 2023
 - rdns-forwarder: `encrypted` now defaults to true
+- example-service: updated to Amazon Linux 2023, t4g.nano
 
 ### Fixed
 - rdns-forwarder: unable to bootstrap if DHCP provided 3 not-yet-functioning nameserver IPs

@@ -75,7 +75,17 @@ provider "aws" {
   allowed_account_ids = [var.account_id]
 }
 
-# Get the latest Amazon Linux 2 AMI matching the specified name pattern
+## Resources
+
+locals {
+  instance_type = "t4g.nano"
+}
+
+data "aws_ec2_instance_type" "this" {
+  instance_type = local.instance_type
+}
+
+# Get the latest suitable Amazon Linux 2023 AMI
 
 data "aws_ami" "ami" {
   most_recent = true
@@ -83,7 +93,12 @@ data "aws_ami" "ami" {
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023.*"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = data.aws_ec2_instance_type.this.supported_architectures
   }
 }
 
@@ -114,7 +129,7 @@ resource "aws_instance" "example" {
   }
 
   ami                    = data.aws_ami.ami.id
-  instance_type          = "t3.nano"
+  instance_type          = local.instance_type
   subnet_id              = data.aws_subnet.public1-a-net.id
   vpc_security_group_ids = [aws_security_group.example.id]
 
