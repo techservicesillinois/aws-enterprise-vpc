@@ -11,8 +11,8 @@
 # Detailed logs appear in /var/log/cloud-init.log
 
 write_files:
-- path: /etc/motd.tail
+- path: /etc/motd.d/99-hello-world
   content: |
 
     Hello world!  ${welcome_message}
-  permissions: '0440'
+  permissions: '0444'

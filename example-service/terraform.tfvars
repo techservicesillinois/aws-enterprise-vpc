@@ -16,5 +16,5 @@ vpc_short_name = "foobar1" #FIXME
 #ssh_ipv6_cidr_blocks = ["2620:0:e00::/44"]
 
 # Optional SSH public key material
-#ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2..."
+#ssh_public_key = ""ssh-ed25519 AAAAC3Nz..."
 
