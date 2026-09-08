@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - requires Terraform >= 1.2
+- update provider versions
 - rdns-forwarder: updated to Amazon Linux 2023
 - rdns-forwarder: `encrypted` now defaults to true
 - example-service: updated to Amazon Linux 2023, t4g.nano

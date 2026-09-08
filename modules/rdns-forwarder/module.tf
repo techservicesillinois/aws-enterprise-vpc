@@ -8,7 +8,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 3.35"
+      version = ">= 4.7"
     }
     cloudinit = {
       source  = "hashicorp/cloudinit"
@@ -277,6 +277,7 @@ resource "aws_instance" "forwarder" {
   vpc_security_group_ids      = [aws_security_group.rdns.id]
   iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
   user_data_base64            = data.cloudinit_config.user_data.rendered
+  user_data_replace_on_change = true
 
   root_block_device {
     encrypted = var.encrypted

@@ -8,7 +8,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 3.35"
+      version = ">= 5.0"
     }
   }
 }
@@ -49,8 +49,8 @@ output "id" {
 # Elastic IP for NAT Gateway
 
 resource "aws_eip" "nat_eip" {
-  tags = merge(var.tags, var.tags_eip)
-  vpc  = true
+  tags   = merge(var.tags, var.tags_eip)
+  domain = "vpc"
 }
 
 # NAT Gateway
