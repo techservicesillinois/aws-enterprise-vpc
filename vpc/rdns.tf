@@ -121,10 +121,10 @@ module "rdns-a" {
   ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
-resource "null_resource" "rdns-a" {
+resource "terraform_data" "rdns-a" {
   count = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
 
-  triggers = {
+  triggers_replace = {
     t = module.rdns-a[0].id
   }
 
@@ -157,10 +157,10 @@ module "rdns-b" {
   ok_actions                = try([data.terraform_remote_state.global.outputs.vpn_monitor_arn[var.region]], null)
 }
 
-resource "null_resource" "rdns-b" {
+resource "terraform_data" "rdns-b" {
   count = (var.rdns_option == 3 || var.rdns_transition) ? 1 : 0
 
-  triggers = {
+  triggers_replace = {
     t = module.rdns-b[0].id
   }
 

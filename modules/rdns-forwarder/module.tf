@@ -290,15 +290,13 @@ resource "aws_instance" "forwarder" {
 
     # unless old AMI has the wrong architecture for our instance_type
     replace_triggered_by = [
-      null_resource.instance_architecture
+      terraform_data.instance_architecture
     ]
   }
 }
 
-resource "null_resource" "instance_architecture" {
-  triggers = {
-    architecture = data.aws_ami.ami.architecture
-  }
+resource "terraform_data" "instance_architecture" {
+  input = data.aws_ami.ami.architecture
 }
 
 # Security Group
