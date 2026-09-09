@@ -10,10 +10,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.63"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.3"
-    }
     cloudinit = {
       source  = "hashicorp/cloudinit"
       version = "~> 2.4"
@@ -327,10 +323,10 @@ output "vpn1_customer_gateway_configuration" {
   value     = one(module.vpn1[*].customer_gateway_configuration)
 }
 
-resource "null_resource" "vpn1" {
+resource "terraform_data" "vpn1" {
   count = var.use_dedicated_vpn ? 1 : 0
 
-  triggers = {
+  triggers_replace = {
     t = module.vpn1[0].id
   }
 
@@ -362,10 +358,10 @@ output "vpn2_customer_gateway_configuration" {
   value     = one(module.vpn2[*].customer_gateway_configuration)
 }
 
-resource "null_resource" "vpn2" {
+resource "terraform_data" "vpn2" {
   count = var.use_dedicated_vpn ? 1 : 0
 
-  triggers = {
+  triggers_replace = {
     t = module.vpn2[0].id
   }
 

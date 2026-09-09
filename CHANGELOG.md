@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - rdns-forwarder: retry if initial ansible-pull fails
 - rdns-forwarder: swap file
+- moved.tf to automatically update refactored resource addresses when upgrading
 
 ### Changed
 - requires Terraform >= 1.10
@@ -17,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - rdns-forwarder: `encrypted` now defaults to true
 - example-service: updated to Amazon Linux 2023, t4g.nano
 - use S3 native state locking instead of DynamoDB
+- use `terraform_data` instead of `null_resource`
 
 ### Fixed
 - rdns-forwarder: unable to bootstrap if DHCP provided 3 not-yet-functioning nameserver IPs
