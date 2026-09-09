@@ -89,16 +89,6 @@ resource "aws_s3_bucket_versioning" "remote_state_bucket_versioning" {
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "remote_state_bucket_encryption" {
-  bucket = aws_s3_bucket.remote_state_bucket.id
-  rule {
-    apply_server_side_encryption_by_default {
-      # use Amazon S3-managed keys (SSE-S3)
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
 resource "aws_dynamodb_table" "lock_table" {
   name = var.dynamodb_table
   tags = var.tags

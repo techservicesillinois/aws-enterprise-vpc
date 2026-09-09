@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - rdns-forwarder variable `instance_architecture` (now handled automatically)
+- explicit S3 encryption (since Jan 5, 2023 all new object uploads to S3 are automatically encrypted)
 
 
 

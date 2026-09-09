@@ -1,8 +1,8 @@
 ﻿# Bootstrapping Terraform remote state in S3
 
-This directory provides a Terraform module to create the two resources needed for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html):
+This directory provides a Terraform module to create the resources needed for remotely storing [Terraform state](https://developer.hashicorp.com/terraform/language/state) in the [S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3):
 
-  * an S3 bucket with [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) and [server-side encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-encryption.html)
+  * an S3 bucket with [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) enabled
   * a DynamoDB table with a specific schema for state locking
 
 
@@ -10,7 +10,7 @@ This directory provides a Terraform module to create the two resources needed fo
 
 To create these resources (only once per AWS account):
 
-  1. Choose a [valid S3 bucket name](http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules).
+  1. Choose a [valid S3 bucket name](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html).
 
      * S3 bucket names are _globally_ unique, so you must choose one that is not already in use by another AWS account.  One possible strategy is to use the pattern
 
