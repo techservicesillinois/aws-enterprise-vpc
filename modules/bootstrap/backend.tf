@@ -10,8 +10,8 @@
 
 terraform {
   backend "s3" {
-    region         = "us-east-2"
-    dynamodb_table = "terraform"
+    region       = "us-east-2"
+    use_lockfile = true
 
     # must be unique to your AWS account; try replacing
     # uiuc-tech-services-sandbox with the friendly name of your account

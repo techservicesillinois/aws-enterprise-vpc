@@ -8,9 +8,6 @@
 # must match hardcoded region in backend stanzas
 region = "us-east-2"
 
-# must match hardcoded dynamodb_table in backend stanzas
-dynamodb_table = "terraform"
-
 # must match hardcoded bucket in backend stanzas and be unique to your AWS
 # account; try replacing uiuc-tech-services-sandbox with the friendly name of
 # your account

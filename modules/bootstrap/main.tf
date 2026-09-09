@@ -1,10 +1,10 @@
-# This bootstrap environment creates the singleton S3 bucket and DynamoDB table
-# used to store Terraform state for other IaC environments.
+# This bootstrap environment creates the singleton resources used to store
+# Terraform state for other IaC environments.
 #
 # Copyright (c) 2021 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
@@ -29,11 +29,6 @@ variable "region" {
   type        = string
 }
 
-variable "dynamodb_table" {
-  description = "Must match hardcoded dynamodb_table in backend stanzas"
-  type        = string
-}
-
 variable "bucket" {
   description = "Choose a valid S3 bucket name which is not already in use by any other AWS account.  Hint: try 'terraform.uiuc-tech-services-sandbox.aws.illinois.edu' but replace 'uiuc-tech-services-sandbox' with the friendly name of your AWS account."
   type        = string
@@ -49,10 +44,6 @@ variable "tags" {
 
 output "region" {
   value = var.region
-}
-
-output "dynamodb_table" {
-  value = aws_dynamodb_table.lock_table.name
 }
 
 output "bucket" {
@@ -86,24 +77,5 @@ resource "aws_s3_bucket_versioning" "remote_state_bucket_versioning" {
   bucket = aws_s3_bucket.remote_state_bucket.id
   versioning_configuration {
     status = "Enabled"
-  }
-}
-
-resource "aws_dynamodb_table" "lock_table" {
-  name = var.dynamodb_table
-  tags = var.tags
-
-  billing_mode = "PAY_PER_REQUEST"
-
-  hash_key = "LockID"
-
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
-
-  # Terraform should never destroy this resource
-  lifecycle {
-    prevent_destroy = true
   }
 }

@@ -3,7 +3,6 @@
 This directory provides a Terraform module to create the resources needed for remotely storing [Terraform state](https://developer.hashicorp.com/terraform/language/state) in the [S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3):
 
   * an S3 bucket with [versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) enabled
-  * a DynamoDB table with a specific schema for state locking
 
 
 ## Usage
@@ -25,14 +24,14 @@ To create these resources (only once per AWS account):
 
      Enter your chosen bucket name when prompted.
 
-This singleton S3 bucket and DynamoDB table can be used by any number of infrastructure-as-code (IaC) environments for the same AWS account, **provided that each environment's backend configuration stanza specifies a different `key` value**.  Note in particular that the region where Terraform state is stored (us-east-2 by default) does not need to match the region(s) where other resources are being deployed.
+This singleton S3 bucket can be used by any number of infrastructure-as-code (IaC) environments for the same AWS account, **provided that each environment's backend configuration stanza specifies a different `key` value**.  Note in particular that the region where Terraform state is stored (us-east-2 by default) does *not* need to match the region(s) where other resources are being deployed.
 
 
 ## Escaping Catch-22
 
 In general we strongly recommend that all infrastructure-as-code (IaC) environments be fully specified in source control and their Terraform state kept remotely in S3, so that you can easily destroy or modify them later on.
 
-This bootstrap environment is a justifiable exception to the rule, since it creates just two simple resources which we NEVER intend to destroy.  Running the module once with interactive input and then throwing it away is a convenient and perfectly reasonable substitute for just creating the resources by hand using AWS CLI.
+This bootstrap environment is a justifiable exception to the rule, since it only creates very simple resources which we NEVER intend to destroy.  Running the module once with interactive input and then throwing it away is a convenient and perfectly reasonable substitute for just creating the resources by hand using AWS CLI.
 
 If you wish to do a bit of extra work, however, it is possible to follow the general rule for this environment too.  *After* performing the first successful apply (as above),
 
@@ -40,4 +39,4 @@ If you wish to do a bit of extra work, however, it is possible to follow the gen
   4. Run `terraform init` and answer 'yes' to copy existing state from the local file to the new S3 backend.
   5. Run `terraform plan` to make sure there are no changes and that you are no longer prompted interactively for unset variables.
   6. Add this directory's `*.tf` and `terraform.tfvars` files (with your modifications) to source control.
-     NB: do NOT add `.terraform/` or `terraform.tfstate` to source control.
+     NB: do *NOT* add `.terraform/` or `terraform.tfstate` to source control.

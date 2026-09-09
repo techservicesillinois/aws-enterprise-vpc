@@ -11,11 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - rdns-forwarder: swap file
 
 ### Changed
-- requires Terraform >= 1.2
+- requires Terraform >= 1.10
 - update provider versions
 - rdns-forwarder: updated to Amazon Linux 2023
 - rdns-forwarder: `encrypted` now defaults to true
 - example-service: updated to Amazon Linux 2023, t4g.nano
+- use S3 native state locking instead of DynamoDB
 
 ### Fixed
 - rdns-forwarder: unable to bootstrap if DHCP provided 3 not-yet-functioning nameserver IPs

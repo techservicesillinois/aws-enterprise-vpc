@@ -33,7 +33,7 @@ You will need:
 
   * a suitably configured workstation (see "Workstation Setup" further down) _or_ [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/)
 
-  * an S3 bucket **with versioning enabled** and a DynamoDB table with a specific schema, for remotely storing [Terraform state](https://www.terraform.io/docs/state/) in the [S3 backend](https://www.terraform.io/docs/backends/types/s3.html)
+  * an S3 bucket **with versioning enabled** for remotely storing [Terraform state](https://developer.hashicorp.com/terraform/language/state) in the [S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3)
 
     _Caution:_ always obtain expert advice before rolling back or modifying a Terraform state file!
 
