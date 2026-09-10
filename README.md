@@ -190,7 +190,7 @@ If you like, you can now deploy the `example-service` environment to launch an E
     terraform init
     terraform apply
 
-If you supplied values for `ssh_ipv4_cidr_blocks` and `ssh_public_key`, you should now be able to connect to the public IPv4 address of the instance (output by Terraform as `public_ip`) with e.g.
+If you supplied values for `ssh_cidr_blocks` and `ssh_public_key`, you should be able to connect to the public IP address of the instance (output by Terraform as `public_ip`) with e.g.
 
     ssh -i identity_file ec2-user@a.b.c.d
 

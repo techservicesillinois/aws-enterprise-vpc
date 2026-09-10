@@ -36,15 +36,9 @@ variable "vpc_short_name" {
   type        = string
 }
 
-variable "ssh_ipv4_cidr_blocks" {
-  description = "Optional IPv4 CIDR blocks from which to allow SSH"
-  type        = list(string)
-  default     = []
-}
-
-variable "ssh_ipv6_cidr_blocks" {
-  description = "Optional IPv6 CIDR blocks from which to allow SSH"
-  type        = list(string)
+variable "ssh_cidr_blocks" {
+  description = "Optional IPv4 and/or IPv6 CIDR blocks from which to allow SSH"
+  type        = set(string)
   default     = []
 }
 
@@ -165,27 +159,24 @@ resource "aws_security_group" "example" {
   }
 }
 
-resource "aws_security_group_rule" "allow_outbound" {
+resource "aws_vpc_security_group_egress_rule" "allow_outbound" {
+  for_each = toset(["0.0.0.0/0", "::/0"])
+
   security_group_id = aws_security_group.example.id
-  type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
+  ip_protocol       = "-1"
+  cidr_ipv4         = can(regex(":", each.key)) ? null : each.key
+  cidr_ipv6         = can(regex(":", each.key)) ? each.key : null
 }
 
-resource "aws_security_group_rule" "allow_ssh" {
-  # only create this rule if we have at least one CIDR block
-  count = length(var.ssh_ipv4_cidr_blocks) + length(var.ssh_ipv6_cidr_blocks) > 0 ? 1 : 0
+resource "aws_vpc_security_group_ingress_rule" "allow_ssh" {
+  for_each = var.ssh_cidr_blocks
 
   security_group_id = aws_security_group.example.id
-  type              = "ingress"
-  protocol          = "tcp"
+  ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
-  cidr_blocks       = var.ssh_ipv4_cidr_blocks
-  ipv6_cidr_blocks  = var.ssh_ipv6_cidr_blocks
+  cidr_ipv4         = can(regex(":", each.key)) ? null : each.key
+  cidr_ipv6         = can(regex(":", each.key)) ? each.key : null
 }
 
 # User Data

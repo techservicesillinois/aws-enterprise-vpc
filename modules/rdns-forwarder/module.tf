@@ -311,44 +311,37 @@ resource "aws_security_group" "rdns" {
   }
 }
 
-resource "aws_security_group_rule" "allow_outbound" {
-  # note: tags not supported
+resource "aws_vpc_security_group_egress_rule" "allow_all_outbound" {
+  for_each = toset(["0.0.0.0/0", "::/0"])
+
   security_group_id = aws_security_group.rdns.id
-  type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
+  ip_protocol       = "-1"
+  cidr_ipv4         = can(regex(":", each.key)) ? null : each.key
+  cidr_ipv6         = can(regex(":", each.key)) ? each.key : null
 }
 
-resource "aws_security_group_rule" "allow_dns_udp" {
-  # note: tags not supported
+resource "aws_vpc_security_group_ingress_rule" "allow_dns_udp" {
   security_group_id = aws_security_group.rdns.id
-  type              = "ingress"
-  protocol          = "udp"
+  ip_protocol       = "udp"
   from_port         = 53
   to_port           = 53
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
 }
 
-resource "aws_security_group_rule" "allow_dns_tcp" {
-  # note: tags not supported
+resource "aws_vpc_security_group_ingress_rule" "allow_dns_tcp" {
   security_group_id = aws_security_group.rdns.id
-  type              = "ingress"
-  protocol          = "tcp"
+  ip_protocol       = "tcp"
   from_port         = 53
   to_port           = 53
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
 }
 
-resource "aws_security_group_rule" "allow_icmp" {
-  # note: tags not supported
+resource "aws_vpc_security_group_ingress_rule" "allow_icmp" {
   security_group_id = aws_security_group.rdns.id
-  type              = "ingress"
-  protocol          = "icmp"
+  ip_protocol       = "icmp"
   from_port         = "-1" # ICMP type number
   to_port           = "-1" # ICMP code
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
 }
 
 # IAM Role
