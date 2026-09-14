@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = "~> 1.10"
+  required_version = "~> 1.15"
 
   required_providers {
     aws = {
@@ -103,10 +103,17 @@ variable "tags" {
   default     = {}
 }
 
+variable "aws-enterprise-vpc_ref" {
+  description = "git ref to use for this repository"
+  type        = string
+  const       = true
+  default     = "v0.11"
+}
+
 ## Outputs
 
 output "aws-enterprise-vpc_version" {
-  value = "v0.11"
+  value = var.aws-enterprise-vpc_ref
 }
 
 output "account_id" {
@@ -257,7 +264,7 @@ locals {
 # deploying NAT gateways).
 
 module "nat" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=v0.11"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/nat-gateway?ref=${var.aws-enterprise-vpc_ref}"
   for_each = { for az_suffix,subnet_key in var.nat_gateways : "${var.region}${az_suffix}" => {
     az_suffix  = az_suffix
     subnet_key = subnet_key
@@ -304,7 +311,7 @@ resource "aws_vpn_gateway_attachment" "vgw_attachment" {
 }
 
 module "vpn1" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.11"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=${var.aws-enterprise-vpc_ref}"
   count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
@@ -339,7 +346,7 @@ resource "terraform_data" "vpn1" {
 }
 
 module "vpn2" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=v0.11"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/vpn-connection?ref=${var.aws-enterprise-vpc_ref}"
   count  = var.use_dedicated_vpn ? 1 : 0
 
   tags                = var.tags
@@ -422,7 +429,7 @@ locals {
 }
 
 module "public-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=v0.11"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/public-facing-subnet?ref=${var.aws-enterprise-vpc_ref}"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "public" }
 
   tags              = var.tags
@@ -438,10 +445,12 @@ module "public-facing-subnet" {
   endpoint_ids        = local.gateway_vpc_endpoint_ids
   transit_gateway_id  = local.transit_gateway_id_local
   internet_gateway_id = aws_internet_gateway.igw.id
+
+  aws-enterprise-vpc_ref = var.aws-enterprise-vpc_ref
 }
 
 module "campus-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=v0.11"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/campus-facing-subnet?ref=${var.aws-enterprise-vpc_ref}"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "campus" }
 
   tags              = var.tags
@@ -459,10 +468,12 @@ module "campus-facing-subnet" {
   # outbound IPv4 Internet access via NAT gateway in this AZ, if any
   # (NB: if no NAT gateway, campus-facing subnet will use TGW for egress)
   nat_gateway_id = [for k,v in module.nat: v.id if k == each.value.availability_zone]
+
+  aws-enterprise-vpc_ref = var.aws-enterprise-vpc_ref
 }
 
 module "private-facing-subnet" {
-  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=v0.11"
+  source   = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/private-facing-subnet?ref=${var.aws-enterprise-vpc_ref}"
   for_each = { for k,v in local.subnet_details: k=>v if v.type == "private" }
 
   tags              = var.tags
@@ -484,4 +495,6 @@ module "private-facing-subnet" {
   # outbound IPv6 Internet access via EIGW, but only if we also have NAT for
   # IPv4 (to avoid a confusing disparity)
   egress_only_gateway_id = contains(keys(module.nat),each.value.availability_zone) ? [aws_egress_only_internet_gateway.eigw.id] : []
+
+  aws-enterprise-vpc_ref = var.aws-enterprise-vpc_ref
 }

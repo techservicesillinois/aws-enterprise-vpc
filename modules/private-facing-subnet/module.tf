@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.15"
 
   required_providers {
     aws = {
@@ -125,6 +125,12 @@ variable "tags_route_table" {
   default     = {}
 }
 
+variable "aws-enterprise-vpc_ref" {
+  description = "git ref to use for this repository"
+  type        = string
+  const       = true
+}
+
 ## Outputs
 
 output "id" {
@@ -143,7 +149,7 @@ output "cidr_block" {
 ## Resources
 
 module "subnet" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/subnet-common?ref=v0.11"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/subnet-common?ref=${var.aws-enterprise-vpc_ref}"
 
   vpc_id                          = var.vpc_id
   name                            = var.name
