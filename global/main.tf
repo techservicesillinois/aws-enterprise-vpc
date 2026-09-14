@@ -3,7 +3,7 @@
 # Copyright (c) 2017 Board of Trustees University of Illinois
 
 terraform {
-  required_version = "~> 1.10"
+  required_version = "~> 1.15"
 
   required_providers {
     aws = {
@@ -34,10 +34,17 @@ variable "tags" {
   default     = {}
 }
 
+variable "aws-enterprise-vpc_ref" {
+  description = "git ref to use for this repository"
+  type        = string
+  const       = true
+  default     = "v0.11"
+}
+
 ## Outputs
 
 output "aws-enterprise-vpc_version" {
-  value = "v0.11"
+  value = var.aws-enterprise-vpc_ref
 }
 
 output "customer_gateway_ids" {
@@ -98,7 +105,7 @@ resource "aws_ram_resource_share_accepter" "rs_accepter_us-east-2" {
 # Note: this solution is deprecated in favor of Transit Gateway.
 
 module "cgw_us-east-1" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.11"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=${var.aws-enterprise-vpc_ref}"
 
   tags = var.tags
 
@@ -108,7 +115,7 @@ module "cgw_us-east-1" {
 }
 
 module "cgw_us-east-2" {
-  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=v0.11"
+  source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/customer-gateways?ref=${var.aws-enterprise-vpc_ref}"
 
   tags = var.tags
 
