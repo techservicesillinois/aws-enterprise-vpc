@@ -38,7 +38,7 @@ variable "aws-enterprise-vpc_ref" {
   description = "git ref to use for this repository"
   type        = string
   const       = true
-  default     = "v0.11"
+  default     = "v0.12"
 }
 
 ## Outputs
