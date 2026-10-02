@@ -8,18 +8,50 @@ In practice, in-place upgrades are often achievable _if_ you are careful and und
 
 The basic idea:
   1. Before doing anything else, re-run `terraform plan` in each environment; there should be no resource changes.
-  2. Upgrade your workstation's installation of Terraform if needed.
-  3. Update your IaC environments to reflect recent changes in the corresponding example files (being sure to preserve your unique customizations).  Carefully proofread the diff between your new IaC and the latest example.
+  2. Upgrade your workstation's installation of Terraform if needed; see also [Terraform upgrade guides](https://developer.hashicorp.com/terraform/language/upgrade-guides).
+  3. Update your own IaC environments to reflect recent changes in the corresponding example files (being sure to preserve your unique customizations).  Carefully proofread the diff between your new IaC and the latest example.
   4. Run `terraform init -upgrade`
   5. Run `terraform plan` and VERY CAREFULLY read what it wants to change, paying particular attention to any resources which will be destroyed and created (as opposed to updated in-place).
-  6. Check the notes below for hints to whittle down this change set, e.g. by renaming resources in your terraform state to reflect code refactoring.
-  7. If using [RDNS Forwarders](modules/rdns-forwarder/README.md), be careful to replace them one at a time!
+  6. Check the notes below for hints to whittle down this change set.
+  7. If using [RDNS Forwarders](modules/rdns-forwarder/README.md), be careful to replace them **one at a time**!
 
-     _Hint:_ one way to accomplish this is using a [targeted](https://www.terraform.io/docs/cli/commands/plan.html#resource-targeting) apply, e.g.
+     One way to accomplish this is using a [targeted](https://developer.hashicorp.com/terraform/cli/commands/plan#resource-targeting) apply, e.g.
 
-         terraform apply -target module.rdns-a
+         terraform apply -target module.rdns-a -target terraform_data.rdns-a
+
+     If that won't work (e.g. due to "Error: Moved resource instances excluded by targeting"), the more painstaking fallback approach is to temporarily edit `vpc/rdns.tf` so that it has a `module "rdns-a"` block suitable for the new version and a `module "rdns-b"` block suitable for the old version (such that Terraform will not plan any changes to the latter).
 
   8. If and when you're confident that the plan will not cause unacceptable disruption, apply it.  When that's done, run an extra apply (which shouldn't need to do anything) just to make sure everything is stable.
+
+
+
+## from v0.11 to v0.12
+
+If the initial `terraform plan` (before updating anything) fails with an error about destroying `null_resource.rdns-a[0]` and `null_resource.rdns-b[0]`, try adding `encrypted = true` to `module "rdns-a"` and `module "rdns-b"` in `vpc/rdns.tf`
+
+When updating your IaC environments, be sure to add the new file `vpc/moved.tf`.
+
+Per <https://developer.hashicorp.com/terraform/language/v1.10.x/upgrade-guides#s3-backend>, executing `terraform init -reconfigure` is required after updating to Terraform v1.10 or higher.  (note: combining `terraform init -upgrade -reconfigure` works fine)
+
+If using RDNS Option 3, upgrade RDNS forwarders one at a time:
+  1. For the initial pass, **do NOT update** the `module "rdns-a"` and `module "rdns-b"` blocks in `vpc/rdns.tf`
+     (do update the rest of this file, but leave those blocks as they were from v0.11).
+  2. Run `terraform apply` making no resource changes to those modules.
+  3. Update the `module "rdns-a"` block for v0.12, and run `terraform init` again to install the new module source.
+  4. Temporarily comment out `prevent_destroy` for `resource "terraform_data" "rdns-a"` only.
+  5. Run `terraform apply` to replace this forwarder.
+  6. Wait 5 minutes, then test to make sure the new forwarder is working.
+  7. Uncomment `prevent_destroy` for `resource "terraform_data" "rdns-a"`
+  8. Update the `module "rdns-b"` block for v0.12, and run `terraform init` again to install the new module source.
+  9. Temporarily comment out `prevent_destroy` for `resource "terraform_data" "rdns-b"` only.
+  10. Run `terraform apply` to replace this forwarder.
+  11. Wait 5 minutes, then test to make sure the new forwarder is working.
+  12. Uncomment `prevent_destroy` for `resource "terraform_data" "rdns-b"`
+
+Expected changes:
+  - (various) `aws_security_group_rule` will be destroyed
+  - (various) `aws_vpc_security_group_egress_rule` will be created
+  - (various) `aws_vpc_security_group_ingress_rule` will be created
 
 
 
