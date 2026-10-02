@@ -1,6 +1,6 @@
 ﻿# AWS Enterprise VPC
 
-This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC, as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=71015).
+This infrastructure-as-code (IaC) repository is intended to help you efficiently deploy your own Enterprise VPC, as documented in [Amazon Web Services VPC Guide for Illinois](https://answers.uillinois.edu/illinois/71015).
 
 There is no one-size-fits-all blueprint for an entire VPC; while they all generally have the same building blocks, the details can vary widely depending on your individual needs.  To that end, this repository provides:
 
@@ -12,7 +12,7 @@ There is no one-size-fits-all blueprint for an entire VPC; while they all genera
 
 _Note:_ these same building blocks can also be used to construct an Independent VPC.
 
-If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, and there is also an official [Introduction to Terraform](https://www.terraform.io/intro/) which you may find helpful.  That said, it should be possible to follow the Quick Start instructions below _without_ first reading anything else.
+If you are not familiar with Terraform, the six-part blog series [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca) provides an excellent introduction, and there is also an official [Introduction to Terraform](https://developer.hashicorp.com/terraform/intro) which you may find helpful.  That said, it should be possible to follow the Quick Start instructions below _without_ reading any Terraform documentation.
 
 One thing you should know: **if at first you don't succeed, try 'apply' again.**  Terraform is usually good at handling dependencies and concurrency for you behind the scenes, but once in a while you may encounter a transient AWS API error while trying to deploy many changes at once simply because Terraform didn't wait long enough between steps.
 
@@ -31,21 +31,21 @@ You will need:
 
   * an official name (e.g. "aws-foobar1-vpc") and IPv4 allocation (e.g. 10.x.y.0/24) for your Enterprise VPC
 
-  * a suitably configured workstation (see "Workstation Setup" further down) _or_ [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/)
+  * a suitably configured workstation (see "Workstation Setup" further down) _or_ AWS CloudShell
 
   * an S3 bucket **with versioning enabled** for remotely storing [Terraform state](https://developer.hashicorp.com/terraform/language/state) in the [S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3)
 
-    _Caution:_ always obtain expert advice before rolling back or modifying a Terraform state file!
-
     See [`modules/bootstrap/README.md`](modules/bootstrap/README.md) to create these resources (only once per AWS account).
+
+    _Caution:_ always obtain expert advice before rolling back or modifying a Terraform state file!
 
   * your own copy of the sample environment code, **customized** for your desired VPC and **stored in your own source control repository**
 
     Download the [latest release of this public repository](https://github.com/techservicesillinois/aws-enterprise-vpc/releases/latest) to use as a starting point.
 
-    Note that you do _not_ need your own copy of the `modules/` directory; the [module source paths](https://www.terraform.io/docs/modules/sources.html) specified in the example environments point directly to this public repository.
+    Note that you do _not_ need your own copy of the `modules/` directory; the [module source paths](https://developer.hashicorp.com/terraform/language/block/module#source) specified in the example environments point directly to this public repository.
 
-**At minimum, you must edit the values marked with '#FIXME' comments in the following files**:
+**At minimum, you must edit the values marked with "#FIXME" comments in the following files**:
    * in `global/backend.tf`:
      - bucket
    * in `global/terraform.tfvars`:
@@ -58,41 +58,41 @@ You will need:
      - vpc_cidr_block
      - cidr_block (multiple occurrences, all different values)
 
-You may wish to make additional changes based on your specific needs; read the comments for some hints.  If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with IPv6, four subnets (one public-facing and one campus-facing in each of two Availability Zones), and no NAT Gateways, i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
+You may wish to make additional changes based on your specific needs; read the comments for some hints.
+
+If you leave everything else unchanged, the result will be an Enterprise VPC in us-east-2 (Ohio) with IPv6, four subnets (one public-facing and one campus-facing in each of two Availability Zones), and no NAT Gateways, i.e. many but not all of the elements shown in the Detailed Enterprise VPC Example diagram:
+
 ![Enterprise VPC Example diagram](https://answers.uillinois.edu/images/group180/71015/EnterpriseVPCExample.png)
 
 
 ### AWS CloudShell Setup
 
-If you just want to deploy your VPC as quickly as possible, you can install Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this:
+If you just want to deploy your VPC as quickly as possible, you can install and configure Terraform in [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/) like this, substituting the latest **stable** VERSION number available from <https://releases.hashicorp.com/terraform/>:
 
+    export VERSION=1.16.4
     mkdir -p ~/.local/bin
-    export VERSION=1.0.0
+    echo 'plugin_cache_dir = "/var/tmp"' > ~/.terraformrc
     wget -P /tmp https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
     unzip -d ~/.local/bin /tmp/terraform_${VERSION}_linux_amd64.zip terraform
     terraform --version
 
-Then follow [`modules/bootstrap/README.md`](modules/bootstrap/README.md) if needed, check out your (customized) live infrastructure-as-code repository with e.g.
-
-    git clone <url>
-
-and continue on to "Deployment Steps" below (skipping "Workstation Setup").
+Then follow [`modules/bootstrap/README.md`](modules/bootstrap/README.md) if needed, check out your (customized) live infrastructure-as-code repository with e.g. `git clone <url>`, and continue on to "Deployment Steps" below (skipping "Workstation Setup").
 
 However, if you're interested in using Terraform for other infrastructure-as-code (IaC) projects beyond this one, it is worthwhile to go ahead and set up your regular workstation.
 
 
 ### Workstation Setup
 
-You can run this IaC from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow the ["golden rule of Terraform"](https://blog.gruntwork.io/how-to-use-terraform-as-a-team-251bc1104973#7fe9):
-> **"The master branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
+You can run this IaC from any workstation (even a laptop); there is no need for a dedicated deployment server.  Since the Terraform state is kept in S3, you can even run it from a different workstation every day, so long as you carefully follow the ["Golden Rule of Terraform"](https://www.gruntwork.io/blog/how-to-use-terraform-as-a-team#use-version-control-1):
+> **"The main branch of the live [source control] repository should be a 1:1 representation of what’s actually deployed in production."**
 
 To set up your workstation:
 
   _Note: these instructions were written for GNU/Linux. Some adaptation may be necessary for other operating systems._
 
-  1. [Download Terraform](https://www.terraform.io/downloads.html) for your system, extract the binary from the .zip archive, and put it somewhere on your PATH (e.g. `/usr/local/bin/terraform` or `~/.local/bin/terraform`)
+  1. [Download Terraform](https://developer.hashicorp.com/terraform/install) for your system, extract the binary from the .zip archive, and put it somewhere on your PATH (e.g. `~/.local/bin/terraform`)
 
-  2. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and optionally the [awscli-login plugin](https://github.com/techservicesillinois/awscli-login).  One convenient way to do this is:
+  2. Install the [AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/) and optionally the [awscli-login plugin](https://pypi.org/project/awscli-login/).  One convenient way to do this is:
 
          pip3 install --user --upgrade awscli awscli-login
 
@@ -102,7 +102,7 @@ To set up your workstation:
 
          aws configure set plugins.login awscli_login
 
-     and configure a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) which will use Shibboleth authentication to assume an appropriate Role in your AWS account:
+     and configure a [named profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-using-profiles) which will use Shibboleth authentication to assume an appropriate Role in your AWS account:
 
          aws configure --profile uiuc-tech-services-sandbox
           AWS Access Key ID [None]: 
@@ -117,9 +117,9 @@ To set up your workstation:
           Duo Factor [None]: passcode
           Role ARN [None]: arn:aws:iam::378517677616:role/TechServicesStaff
 
-     The profile name "uiuc-tech-services-sandbox" is arbitrary, but the Role ARN identifies a specific role to which you have been [granted access](https://answers.uillinois.edu/illinois/page.php?id=71883).
+     The profile name "uiuc-tech-services-sandbox" is arbitrary, but the Role ARN identifies a specific role to which you have been [granted access](https://answers.uillinois.edu/illinois/71883).
 
-     Duo Factor may be `auto`, `push`, `passcode`, `sms`, or `phone`, or you can leave it blank in the profile to be prompted each time.  See also <https://github.com/techservicesillinois/awscli-login>
+     Duo Factor may be `auto`, `push`, `passcode`, `sms`, or `phone`, or you can leave it blank in the profile to be prompted each time.  See also <https://pypi.org/project/awscli-login/>
 
   4. Test that you can successfully interact with your AWS account:
 
@@ -147,9 +147,9 @@ To set up your workstation:
        terraform apply
        cd ..
 
-   * The global environment automatically creates [Simple Notification Service](https://aws.amazon.com/sns/) topics which can be used later for optional [CloudWatch alarm notifications](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-actions).
+   * The global environment automatically creates [Simple Notification Service](https://aws.amazon.com/sns/) topics which can be used later for optional [CloudWatch alarm](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Alarms.html) notifications.
 
-     If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topics (indicated by the Terraform output "vpn_monitor_arn"):
+     If you wish to receive these alarm notifications by email, use the AWS CLI to subscribe one or more email addresses to the SNS topics (indicated by the Terraform output `vpn_monitor_arn`), e.g.:
 
          aws sns subscribe --region us-east-2 --topic-arn arn:aws:sns:us-east-2:999999999999:vpn-monitor-topic \
           --protocol email --notification-endpoint my-email@example.com
@@ -172,7 +172,7 @@ To set up your workstation:
 
    (The Core Services Transit Gateways _accept_ new attachments automatically, but will not _route_ to them until explicitly provisioned.)
 
-5. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/page.php?id=74081),
+5. By default, recursive DNS queries from instances within your VPC will be handled by [AmazonProvidedDNS](https://docs.aws.amazon.com/vpc/latest/userguide/AmazonDNS-concepts.html#AmazonDNS).  If you wish to use one of the other options documented in [Amazon Web Services Recursive DNS Guide for Illinois](https://answers.uillinois.edu/illinois/74081),
 
    * Edit `vpc/terraform.tfvars` to set `rdns_option` and `core_services_resolvers`
 
@@ -216,9 +216,9 @@ After your VPC is deployed, the next logical step is to write additional infrast
         key = "Shared Networking/global/terraform.tfstate"
         key = "Shared Networking/vpc/terraform.tfstate"
 
-    where 'Shared Networking' is meant to uniquely identify this IaC _repository_, and 'global' or 'vpc' the specific environment directory within this repository.
+    where "Shared Networking" is meant to uniquely identify this IaC _repository_, and "global" or "vpc" the specific environment directory within this repository.
 
-    Note that the key for `example-service` does _not_ begin with 'Shared Networking' because it's a separate piece of IaC which would normally reside in its own repository.
+    Note that the key for `example-service` does _not_ begin with "Shared Networking" because it's a separate piece of IaC which would normally reside in its own repository.
 
 
 ### Multiple VPCs
@@ -264,12 +264,11 @@ Note that each AWS account will need its own separate S3 bucket for Terraform st
 
 ### Destroying VPCs
 
-The example `vpc/main.tf` uses [`prevent_destroy`](https://www.terraform.io/docs/language/meta-arguments/lifecycle.html#prevent_destroy) to guard against inadvertent destruction of certain resources; if you really need to destroy your entire VPC, you must first comment out each occurrence of this flag.  **Please note: if you destroy and subsequently recreate your VPC, you will need to contact Technology Services again to re-enable Enterprise Networking features for the new VPC.**
+The example `vpc/main.tf` uses [`prevent_destroy`](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle#prevent_destroy) to guard against inadvertent destruction of certain resources; if you really need to destroy your entire VPC, you must first comment out each occurrence of this flag.  **Please note: if you destroy and subsequently recreate your VPC, you will need to contact Technology Services again to re-enable Enterprise Networking features for the new VPC.**
 
 Additionally, Terraform cannot successfully destroy a VPC until all other resources that depend on that VPC have been removed.  Unfortunately, the error message returned by the [AWS API method](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteVpc.html) and printed by Terraform in this case does not provide any indication of _which_ resources are the obstacle:
 
-    aws_vpc.vpc: DependencyViolation: The vpc 'vpc-abcd1234' has dependencies and cannot be deleted.
-	  status code: 400, request id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    DependencyViolation: The vpc 'vpc-abcd1234' has dependencies and cannot be deleted.
 
 If you find yourself in this situation, here is a set of AWS CLI commands (using bash-style variable substitution syntax) which may help you identify resources which are still associated with the VPC:
 
@@ -297,7 +296,7 @@ MAJOR.MINOR.PATCH versions of this repository are immutable releases tracked wit
 
 MAJOR.MINOR versions of this repository are tracked as git branches, e.g. `vX.Y`.  These are mutable, but only for non-breaking changes (once `vX.Y.0` has been released).
 
-All [module source paths](https://www.terraform.io/docs/modules/sources.html) used within the code specify a `vX.Y` branch.
+The [module source paths](https://developer.hashicorp.com/terraform/language/block/module#source) used within the code specify a `vX.Y` branch.
 
 What this means (using hypothetical version numbers) is that if you base your own live IaC on the example environment code from release `v1.2.3`, and later run `terraform get -update` (or `terraform init` on a different workstation),
 * You will automatically receive any module changes released as `v1.2.4` (which should be safe), because they appear on the `v1.2` branch.
