@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - use S3 native state locking instead of DynamoDB
 - use `terraform_data` instead of `null_resource`
 - refactor module source paths using const variable
+- use `aws_vpc_security_group_ingress_rule` and `aws_vpc_security_group_egress_rule` instead of `aws_security_group_rule`
 
 ### Fixed
 - rdns-forwarder: unable to bootstrap if DHCP provided 3 not-yet-functioning nameserver IPs

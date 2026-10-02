@@ -311,44 +311,91 @@ resource "aws_security_group" "rdns" {
   }
 }
 
-resource "aws_security_group_rule" "allow_outbound" {
-  # note: tags not supported
+resource "aws_vpc_security_group_egress_rule" "allow_all_outbound" {
+  for_each = toset(["0.0.0.0/0", "::/0"])
+
   security_group_id = aws_security_group.rdns.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = can(regex(":", each.key)) ? null : each.key
+  cidr_ipv6         = can(regex(":", each.key)) ? each.key : null
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.allow_outbound]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_dns_udp" {
+  security_group_id = aws_security_group.rdns.id
+  ip_protocol       = "udp"
+  from_port         = 53
+  to_port           = 53
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.allow_dns_udp]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_dns_tcp" {
+  security_group_id = aws_security_group.rdns.id
+  ip_protocol       = "tcp"
+  from_port         = 53
+  to_port           = 53
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.allow_dns_tcp]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_icmp" {
+  security_group_id = aws_security_group.rdns.id
+  ip_protocol       = "icmp"
+  from_port         = "-1" # ICMP type number
+  to_port           = "-1" # ICMP code
+  cidr_ipv4         = data.aws_vpc.selected.cidr_block
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.allow_icmp]
+}
+
+# legacy blocks for depends_on (above) to destroy old rules before adding new
+resource "aws_security_group_rule" "allow_outbound" {
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "egress"
   protocol          = "-1"
   from_port         = 0
   to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
+  self              = true
 }
-
 resource "aws_security_group_rule" "allow_dns_udp" {
-  # note: tags not supported
-  security_group_id = aws_security_group.rdns.id
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "ingress"
-  protocol          = "udp"
-  from_port         = 53
-  to_port           = 53
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  self              = true
 }
-
 resource "aws_security_group_rule" "allow_dns_tcp" {
-  # note: tags not supported
-  security_group_id = aws_security_group.rdns.id
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "ingress"
-  protocol          = "tcp"
-  from_port         = 53
-  to_port           = 53
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  self              = true
 }
-
 resource "aws_security_group_rule" "allow_icmp" {
-  # note: tags not supported
-  security_group_id = aws_security_group.rdns.id
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "ingress"
-  protocol          = "icmp"
-  from_port         = "-1" # ICMP type number
-  to_port           = "-1" # ICMP code
-  cidr_blocks       = [data.aws_vpc.selected.cidr_block]
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  self              = true
 }
 
 # IAM Role

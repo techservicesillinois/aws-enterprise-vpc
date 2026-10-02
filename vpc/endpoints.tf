@@ -70,7 +70,7 @@ resource "aws_vpc_endpoint" "interface" {
   vpc_endpoint_type   = "Interface"
   service_name        = each.value
   private_dns_enabled = true
-  security_group_ids  = [aws_security_group.endpoints[0].id]
+  security_group_ids  = [aws_security_group.endpoints["this"].id]
   subnet_ids          = local.interface_vpc_endpoint_subnet_ids
 }
 
@@ -80,7 +80,7 @@ resource "aws_vpc_endpoint" "interface" {
 # but our SG permits IPv6 anyway in case that changes
 
 resource "aws_security_group" "endpoints" {
-  count = length(var.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
+  for_each = length(var.interface_vpc_endpoint_service_names) > 0 ? toset(["this"]) : []
 
   tags = merge(var.tags, {
     Name = "${var.vpc_short_name}-vpc-endpoints"
@@ -91,29 +91,69 @@ resource "aws_security_group" "endpoints" {
 }
 
 # allow all outbound
-resource "aws_security_group_rule" "endpoint_egress" {
-  # note: tags not supported
-  count = length(var.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
+resource "aws_vpc_security_group_egress_rule" "endpoint_egress_ipv4" {
+  for_each = aws_security_group.endpoints
 
-  security_group_id = aws_security_group.endpoints[0].id
+  security_group_id = each.value.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.endpoint_egress]
+}
+
+resource "aws_vpc_security_group_egress_rule" "endpoint_egress_ipv6" {
+  for_each = aws_security_group.endpoints
+
+  security_group_id = each.value.id
+  ip_protocol       = "-1"
+  cidr_ipv6         = "::/0"
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.endpoint_egress]
+}
+
+# allow inbound only from this VPC
+resource "aws_vpc_security_group_ingress_rule" "endpoint_ingress_ipv4" {
+  for_each = aws_security_group.endpoints
+
+  security_group_id = each.value.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = aws_vpc.vpc.cidr_block
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.endpoint_ingress]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "endpoint_ingress_ipv6" {
+  for_each = var.assign_generated_ipv6_cidr_block ? aws_security_group.endpoints : {}
+
+  security_group_id = each.value.id
+  ip_protocol       = "-1"
+  cidr_ipv6         = aws_vpc.vpc.ipv6_cidr_block
+
+  # avoid race condition when upgrading from v0.11
+  depends_on = [aws_security_group_rule.endpoint_ingress]
+}
+
+# legacy blocks for depends_on (above) to destroy old rules before adding new
+resource "aws_security_group_rule" "endpoint_egress" {
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "egress"
   protocol          = "-1"
   from_port         = 0
   to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
+  self              = true
 }
-
-# allow inbound only from this VPC
 resource "aws_security_group_rule" "endpoint_ingress" {
-  # note: tags not supported
-  count = length(var.interface_vpc_endpoint_service_names) > 0 ? 1 : 0
-
-  security_group_id = aws_security_group.endpoints[0].id
+  count = 0
+  # required arguments
+  security_group_id = ""
   type              = "ingress"
   protocol          = "-1"
   from_port         = 0
   to_port           = 0
-  cidr_blocks       = [aws_vpc.vpc.cidr_block]
-  ipv6_cidr_blocks  = (aws_vpc.vpc.ipv6_cidr_block == "" ? null : [aws_vpc.vpc.ipv6_cidr_block])
+  self              = true
 }

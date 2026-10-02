@@ -22,9 +22,11 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
 
   module "rdns-test" {
     source = "git::https://github.com/techservicesillinois/aws-enterprise-vpc.git//modules/rdns-forwarder?ref=TESTBRANCH" #FIXME
-    tags = {
+
+    tags = merge(var.tags, {
       Name = "rdns-test"
-    }
+    })
+
     instance_type           = "t4g.micro"
     core_services_resolvers = ["10.224.1.50", "10.224.1.100"] #FIXME
     subnet_id               = module.public-facing-subnet["public1-a-net"].id
@@ -39,13 +41,15 @@ To deploy a new instance, write IaC which specifies the throwaway branch both in
     key_name                 = aws_key_pair.test.key_name
   }
 
-  resource "aws_security_group_rule" "rdns-test-allow_ssh" {
+  resource "aws_vpc_security_group_ingress_rule" "rdns-test-allow_ssh" {
+    for_each = toset([var.vpc_cidr_block, "130.126.0.0/16"])
+
     security_group_id = module.rdns-test.security_group_id
-    type              = "ingress"
-    protocol          = "tcp"
+    ip_protocol       = "tcp"
     from_port         = 22
     to_port           = 22
-    cidr_blocks       = [var.vpc_cidr_block, "130.126.0.0/16"]
+    cidr_ipv4         = can(regex(":", each.key)) ? null : each.key
+    cidr_ipv6         = can(regex(":", each.key)) ? each.key : null
   }
 
   output "rdns-test" {

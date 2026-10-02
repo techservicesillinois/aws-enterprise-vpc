@@ -5,6 +5,11 @@
 # since v0.11
 
 moved {
+  from = aws_security_group.endpoints[0]
+  to   = aws_security_group.endpoints["this"]
+}
+
+moved {
   from = null_resource.vpn1
   to   = terraform_data.vpn1
 }
