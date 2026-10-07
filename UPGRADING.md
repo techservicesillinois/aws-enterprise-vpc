@@ -53,6 +53,54 @@ Expected changes:
   - (various) `aws_vpc_security_group_egress_rule` will be created
   - (various) `aws_vpc_security_group_ingress_rule` will be created
 
+In some cases an existing security group may already have an IPv6 egress rule which is not managed by Terraform.  If after **multiple apply attempts** you encounter "Error: creating VPC Security Group Rule" due to `InvalidPermission.Duplicate: the specified rule "peer: ::/0, ALL, ALLOW" already exists`,
+
+  1. Use the plan output to identify the Terraform [resource address](https://developer.hashicorp.com/terraform/cli/state/resource-addressing) and the `security_group_id` in question:
+
+         # module.rdns-a[0].aws_vpc_security_group_egress_rule.allow_all_outbound["::/0"] will be created
+         + resource "aws_vpc_security_group_egress_rule" "allow_all_outbound" {
+             + arn                    = (known after apply)
+             + cidr_ipv6              = "::/0"
+             + id                     = (known after apply)
+             + ip_protocol            = "-1"
+             + region                 = "us-east-2"
+             + security_group_id      = "sg-e2a07789"
+             + security_group_rule_id = (known after apply)
+             + tags_all               = {}
+           }
+
+  2. Identify the SecurityGroupRuleId of the existing rule (using the group id from step 1):
+
+         $ aws ec2 describe-security-group-rules --filters Name=group-id,Values=sg-e2a07789 \
+           --query 'SecurityGroupRules[?IsEgress==`true` && CidrIpv6==`::/0`]'
+         [
+             {
+                 "SecurityGroupRuleId": "sgr-0d350e5ee9ec6114e",
+                 "GroupId": "sg-e2a07789",
+                 "GroupOwnerId": "378517677616",
+                 "IsEgress": true,
+                 "IpProtocol": "-1",
+                 "FromPort": -1,
+                 "ToPort": -1,
+                 "CidrIpv6": "::/0",
+                 "Tags": [],
+                 "SecurityGroupRuleArn": "arn:aws:ec2:us-east-2:378517677616:security-group-rule/sgr-0d350e5ee9ec6114e"
+             }
+         ]
+
+  3. Temporarily create a file `import.tf` which tells Terraform to [import the existing rule](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule#import) instead of trying to create it:
+
+         import {
+           # resource address from step 1
+           to = module.rdns-a[0].aws_vpc_security_group_egress_rule.allow_all_outbound["::/0"]
+           # rule id from step 2
+           id = "sgr-0d350e5ee9ec6114e"
+         }
+
+     and `terraform apply` again (this should produce a clean `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.`)
+
+  4. Once the import succeeds, delete `import.tf`
+
 
 
 ## from v0.10 to v0.11
